@@ -808,13 +808,13 @@
           <!-- Date From -->
           <div style="display:flex;align-items:center;gap:5px;">
             <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">From:</label>
-            <input type="date" id="formFilterDateFrom" onchange="applyFormFilters()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;">
+            <input type="date" id="formFilterDateFrom" onchange="applyFormFilters()" onclick="this.showPicker()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;color-scheme:dark;">
           </div>
 
           <!-- Date To -->
           <div style="display:flex;align-items:center;gap:5px;">
             <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">To:</label>
-            <input type="date" id="formFilterDateTo" onchange="applyFormFilters()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;">
+            <input type="date" id="formFilterDateTo" onchange="applyFormFilters()" onclick="this.showPicker()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;color-scheme:dark;">
           </div>
 
           <!-- Search -->
