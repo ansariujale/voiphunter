@@ -1050,6 +1050,12 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
             add_log("⏹ Form outreach stop requested", category="form")
             self._json_response(result)
 
+        elif path == "/api/form-outreach/clean-urls":
+            from modules.form_outreach import clean_all_pending_urls
+            result = clean_all_pending_urls()
+            add_log(f"🧹 Cleaned {result.get('cleaned', 0)}/{result.get('total', 0)} URLs", category="form")
+            self._json_response(result)
+
         elif path == "/api/chat":
             # AI chat with the agent
             message = body.get("message", "").strip()
