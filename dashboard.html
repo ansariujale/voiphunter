@@ -646,9 +646,11 @@
       <div class="page-title">Lead Database</div>
       <div class="page-sub">All scraped leads with dedup — <span id="leadTotalCount">0</span> total</div>
 
-      <div class="input-group">
+      <div class="input-group" style="flex-wrap:wrap;">
         <input class="input" type="text" placeholder="Search company, domain, contact..." id="leadSearch" oninput="filterLeads()" style="flex:1;min-width:200px;">
-        <select class="input" id="filterCountry" onchange="filterLeads()"><option value="">All Countries</option></select>
+        <select class="input" id="filterCountry" onchange="onCountryFilterChange()"><option value="">All Countries</option></select>
+        <select class="input" id="filterState" onchange="onStateFilterChange()"><option value="">All States</option></select>
+        <select class="input" id="filterCity" onchange="filterLeads()"><option value="">All Cities</option></select>
         <select class="input" id="filterType" onchange="filterLeads()">
           <option value="">All Types</option>
           <option value="voip_provider">VoIP Provider</option>
@@ -683,9 +685,9 @@
         <table>
           <thead>
             <tr>
-              <th>Company</th><th>Email</th><th>Phone</th><th>Country</th><th>Type</th>
-              <th>Source</th><th>Score</th>
-              <th>Status</th><th>Actions</th>
+              <th>Company</th><th>Email</th><th>Phone</th><th>Country</th><th>State</th><th>City</th>
+              <th>Keywords</th><th>Industry</th><th>Score</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody id="leadsTableBody"></tbody>
@@ -1694,21 +1696,69 @@ function renderCharts(){
 // LEADS TABLE
 // ═══════════════════════════════════════════════════════════════
 function populateFilters(){
-  const countries = [...new Set(allLeads.map(l=>l.country))].sort();
-  const sel = document.getElementById('filterCountry');
-  sel.innerHTML = '<option value="">All Countries</option>' + countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+  const countries = [...new Set(allLeads.map(l=>l.country).filter(Boolean))].sort();
+  const selCountry = document.getElementById('filterCountry');
+  selCountry.innerHTML = '<option value="">All Countries</option>' + countries.map(c=>`<option value="${c}">${c}</option>`).join('');
+
+  // Populate state and city from all leads initially
+  populateStateFilter();
+  populateCityFilter();
+}
+
+function populateStateFilter(){
+  const country = document.getElementById('filterCountry').value;
+  const relevantLeads = country ? allLeads.filter(l=>l.country===country) : allLeads;
+  const states = [...new Set(relevantLeads.map(l=>l.state).filter(Boolean))].sort();
+  const sel = document.getElementById('filterState');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All States</option>' + states.map(s=>`<option value="${s}">${s}</option>`).join('');
+  // Restore selection if still valid
+  if(current && states.includes(current)) sel.value = current;
+}
+
+function populateCityFilter(){
+  const country = document.getElementById('filterCountry').value;
+  const state = document.getElementById('filterState').value;
+  let relevantLeads = allLeads;
+  if(country) relevantLeads = relevantLeads.filter(l=>l.country===country);
+  if(state) relevantLeads = relevantLeads.filter(l=>l.state===state);
+  const cities = [...new Set(relevantLeads.map(l=>l.city).filter(Boolean))].sort();
+  const sel = document.getElementById('filterCity');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">All Cities</option>' + cities.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(current && cities.includes(current)) sel.value = current;
+}
+
+function onCountryFilterChange(){
+  // Reset state and city when country changes
+  document.getElementById('filterState').value = '';
+  document.getElementById('filterCity').value = '';
+  populateStateFilter();
+  populateCityFilter();
+  filterLeads();
+}
+
+function onStateFilterChange(){
+  // Reset city when state changes
+  document.getElementById('filterCity').value = '';
+  populateCityFilter();
+  filterLeads();
 }
 
 function filterLeads(){
   const search = document.getElementById('leadSearch').value.toLowerCase();
   const country = document.getElementById('filterCountry').value;
+  const state = document.getElementById('filterState').value;
+  const city = document.getElementById('filterCity').value;
   const type = document.getElementById('filterType').value;
   const source = document.getElementById('filterSource').value;
   const status = document.getElementById('filterStatus').value;
 
   filteredLeads = allLeads.filter(l=>{
-    if(search && !((l.company_name||'').toLowerCase().includes(search)||(l.company_domain||'').toLowerCase().includes(search)||(l.contact_name||'').toLowerCase().includes(search))) return false;
+    if(search && !((l.company_name||'').toLowerCase().includes(search)||(l.company_domain||'').toLowerCase().includes(search)||(l.contact_name||'').toLowerCase().includes(search)||(l.keyword_used||'').toLowerCase().includes(search))) return false;
     if(country && l.country!==country) return false;
+    if(state && l.state!==state) return false;
+    if(city && l.city!==city) return false;
     if(type && l.lead_type!==type) return false;
     if(source && l.source!==source) return false;
     if(status==='new' && l.email_sent) return false;
@@ -1731,26 +1781,27 @@ function renderLeads(){
   document.getElementById('leadsTableBody').innerHTML = page.map(l=>{
     const scoreColor = l.score>=70?'var(--green)':l.score>=40?'var(--yellow)':'var(--red)';
     const statusTag = l.closed?'<span class="tag tag-green">Closed</span>':l.interested?'<span class="tag tag-orange">Interested</span>':l.replied?'<span class="tag tag-blue">Replied</span>':l.email_sent?'<span class="tag tag-purple">Emailed</span>':'<span class="tag" style="background:var(--surface2);color:var(--text-dim);border:1px solid var(--border);">New</span>';
+    const keywordDisplay = (l.keyword_used||'').replace(/\s+(UAE|UK|US|India|Germany|France|Netherlands|South Africa|Nigeria|Kenya|Saudi Arabia|Singapore|Malaysia|Philippines|Bangladesh|Pakistan|Turkey|Egypt|Ghana|Tanzania|Brazil|Mexico|Colombia)$/i,'');
     return `<tr>
       <td><strong style="color:var(--text)">${l.company_name}</strong><br><span style="font-size:10px;color:var(--text-dim)">${l.company_domain}</span></td>
-      <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${l.contact_email||'<span style="color:var(--text-dim)">—</span>'}</td>
-      <td style="font-size:11px;">${l.contact_phone||'<span style="color:var(--text-dim)">—</span>'}</td>
-      <td>${l.country}</td>
-      <td><span class="tag tag-cyan">${(l.lead_type||'').replace('_',' ')}</span></td>
-      <td><span class="tag tag-purple">${l.source}</span></td>
+      <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;">${l.contact_email||'<span style="color:var(--text-dim)">\u2014</span>'}</td>
+      <td style="font-size:11px;">${l.contact_phone||'<span style="color:var(--text-dim)">\u2014</span>'}</td>
+      <td>${l.country||'<span style="color:var(--text-dim)">\u2014</span>'}</td>
+      <td style="font-size:11px;">${l.state||'<span style="color:var(--text-dim)">\u2014</span>'}</td>
+      <td style="font-size:11px;">${l.city||'<span style="color:var(--text-dim)">\u2014</span>'}</td>
+      <td style="font-size:10px;max-width:140px;overflow:hidden;text-overflow:ellipsis;" title="${l.keyword_used||''}">${keywordDisplay||'<span style="color:var(--text-dim)">\u2014</span>'}</td>
+      <td><span class="tag tag-cyan">${(l.lead_type||'').replace(/_/g,' ')}</span></td>
       <td><span style="color:${scoreColor};font-weight:700">${l.score}</span><div class="score-bar"><div class="score-fill" style="width:${l.score}%;background:${scoreColor}"></div></div></td>
       <td>${statusTag}</td>
-      <td><button class="btn btn-sm" onclick="viewLead('${l.id}')">View</button></td>
     </tr>`;
   }).join('');
 }
 
 function prevPage(){if(currentPage>1){currentPage--;renderLeads();}}
 function nextPage(){if(currentPage<Math.ceil(filteredLeads.length/PAGE_SIZE)){currentPage++;renderLeads();}}
-function viewLead(id){ /* could open a detail modal */ }
 
 function exportLeads(){
-  const headers = ['company_name','company_domain','contact_name','contact_email','country','lead_type','source','score','email_sent','form_filled','replied','closed','revenue_monthly'];
+  const headers = ['company_name','company_domain','contact_name','contact_email','country','state','city','keyword_used','lead_type','source','score','email_sent','form_filled','replied','closed','revenue_monthly'];
   const csv = [headers.join(','),...filteredLeads.map(l=>headers.map(h=>'"'+(l[h]||'')+'"').join(','))].join('\n');
   const blob = new Blob([csv],{type:'text/csv'});
   const a = document.createElement('a');
