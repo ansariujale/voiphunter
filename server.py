@@ -123,15 +123,10 @@ def run_step_thread(step_name):
                 add_log(f"✓ Sent {sent} initial emails")
 
         elif step_name == "forms":
-            from modules.database import get_leads_for_form_fill
-            from modules.form_filler import fill_forms_sync
-            leads = get_leads_for_form_fill(limit=1000)
-            if not leads:
-                add_log("⚠ No leads pending form fill", "warning")
-            else:
-                stats = fill_forms_sync(leads, max_concurrent=3)
-                agent_state["stats"]["forms_filled"] = stats.get("success", 0)
-                add_log(f"✓ Forms: {stats['success']} success, {stats.get('no_form',0)} no form, {stats.get('failed',0)} failed")
+            from modules.form_outreach import run_form_outreach
+            result = run_form_outreach(batch_size=100)
+            agent_state["stats"]["forms_filled"] = result.get("success", 0)
+            add_log(f"✓ Forms: {result.get('success',0)} success, {result.get('no_form',0)} no form, {result.get('failed',0)} failed")
 
         elif step_name == "followup":
             from modules.database import get_followup_due
@@ -223,12 +218,10 @@ def _run_step_sync(step_name):
             agent_state["stats"]["emails_sent"] = sent
             add_log(f"✓ Sent {sent} emails")
         elif step_name == "forms":
-            from modules.database import get_leads_for_form_fill
-            from modules.form_filler import fill_forms_sync
-            leads = get_leads_for_form_fill(1000)
-            stats = fill_forms_sync(leads, 3) if leads else {"success":0}
-            agent_state["stats"]["forms_filled"] = stats.get("success", 0)
-            add_log(f"✓ Filled {stats.get('success',0)} forms")
+            from modules.form_outreach import run_form_outreach
+            result = run_form_outreach(batch_size=100)
+            agent_state["stats"]["forms_filled"] = result.get("success", 0)
+            add_log(f"✓ Forms: {result.get('success',0)} success, {result.get('failed',0)} failed")
         elif step_name == "followup":
             from modules.database import get_followup_due
             from modules.emailer import send_followup_emails
@@ -726,6 +719,17 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
             else:
                 self._json_response({"emails": [], "domain": domain, "summary": {}})
 
+        elif path == "/api/form-outreach/status":
+            from modules.form_outreach import get_outreach_status
+            self._json_response(get_outreach_status())
+
+        elif path == "/api/form-outreach/results":
+            from modules.form_outreach import get_dashboard_results
+            params = parse_qs(parsed.query)
+            limit = int(params.get("limit", [50])[0])
+            results = get_dashboard_results(limit=limit)
+            self._json_response({"results": results})
+
         elif path == "/api/email-sequences":
             from modules.database import db
             params = parse_qs(parsed.query)
@@ -807,6 +811,19 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
             agent_state["status"] = "idle"
             add_log("Agent stopped — all workers halted", category="system")
             self._json_response({"status": "agent_stopped"})
+
+        elif path == "/api/form-outreach/start":
+            from modules.form_outreach import start_form_outreach_background
+            batch_size = body.get("batch_size", 10)
+            result = start_form_outreach_background(batch_size=int(batch_size))
+            add_log(f"▶ Form outreach started (batch={batch_size})", category="form")
+            self._json_response(result)
+
+        elif path == "/api/form-outreach/stop":
+            from modules.form_outreach import stop_form_outreach
+            result = stop_form_outreach()
+            add_log("⏹ Form outreach stop requested", category="form")
+            self._json_response(result)
 
         elif path == "/api/chat":
             # AI chat with the agent

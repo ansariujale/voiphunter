@@ -650,18 +650,29 @@
       <div class="page-title">Contact Form Filling</div>
       <div class="page-sub">Automated website form submissions via Playwright</div>
 
+      <!-- Batch Controls -->
+      <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:16px;padding:16px 20px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="font-size:12px;color:var(--text-muted);">Batch Size:</label>
+          <input type="number" id="formBatchSize" value="10" min="1" max="100" style="width:60px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;text-align:center;">
+        </div>
+        <button id="btnStartFormOutreach" onclick="startFormOutreach()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--green);color:#000;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Start Batch</button>
+        <button id="btnStopFormOutreach" onclick="stopFormOutreach()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--red);color:#fff;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;display:none;">Stop</button>
+        <div id="formOutreachStatus" style="font-size:11px;color:var(--text-dim);margin-left:auto;"></div>
+      </div>
+
       <div class="stats-row">
-        <div class="stat-card green"><div class="stat-label">Forms Found</div><div class="stat-value" id="formFound">0</div></div>
-        <div class="stat-card blue"><div class="stat-label">Submitted</div><div class="stat-value" id="formSubmitted">0</div></div>
-        <div class="stat-card orange"><div class="stat-label">No Form</div><div class="stat-value" id="formNoForm">0</div></div>
+        <div class="stat-card green"><div class="stat-label">Submitted</div><div class="stat-value" id="formSubmitted">0</div></div>
         <div class="stat-card red"><div class="stat-label">Failed</div><div class="stat-value" id="formFailed">0</div></div>
+        <div class="stat-card orange"><div class="stat-label">No Form</div><div class="stat-value" id="formNoForm">0</div></div>
+        <div class="stat-card blue"><div class="stat-label">Total Processed</div><div class="stat-value" id="formTotal">0</div></div>
       </div>
 
       <div class="card">
-        <h3>Recent Form Submissions</h3>
+        <h3>Form Submission Results</h3>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Company</th><th>Website</th><th>Form URL</th><th>Status</th><th>Time</th></tr></thead>
+            <thead><tr><th>Company</th><th>Website</th><th>Form URL</th><th>Status</th><th>Last Attempt</th><th>Error</th></tr></thead>
             <tbody id="formTableBody"></tbody>
           </table>
         </div>
@@ -1851,17 +1862,110 @@ function updateLivePipeline(logs, currentStep){
 // ═══════════════════════════════════════════════════════════════
 // FORMS PAGE
 // ═══════════════════════════════════════════════════════════════
-async function renderFormsPage(){
-  const withForm = allLeads.filter(l=>l.has_contact_form);
-  const filled = allLeads.filter(l=>l.form_filled);
-  document.getElementById('formFound').textContent = withForm.length;
-  document.getElementById('formSubmitted').textContent = filled.length;
-  document.getElementById('formNoForm').textContent = allLeads.filter(l=>!l.has_contact_form).length;
-  document.getElementById('formFailed').textContent = randInt(20,80);
+let formPollInterval = null;
 
-  document.getElementById('formTableBody').innerHTML = filled.slice(0,20).map(l=>`
-    <tr><td>${l.company_name}</td><td style="color:var(--cyan)">${l.website_url}</td><td>${l.website_url}/contact</td><td><span class="tag tag-green">Submitted</span></td><td style="font-size:10px;color:var(--text-dim)">${new Date(l.created_at).toLocaleDateString()}</td></tr>
-  `).join('');
+async function renderFormsPage(){
+  // Fetch real data from API
+  if(serverConnected){
+    // Get outreach status (running state + counts)
+    const status = await api('/api/form-outreach/status');
+    if(status){
+      document.getElementById('formSubmitted').textContent = status.success || 0;
+      document.getElementById('formFailed').textContent = status.failed || 0;
+      document.getElementById('formNoForm').textContent = status.no_form || 0;
+      document.getElementById('formTotal').textContent = status.total_processed || 0;
+
+      // Update button visibility
+      const startBtn = document.getElementById('btnStartFormOutreach');
+      const stopBtn = document.getElementById('btnStopFormOutreach');
+      const statusEl = document.getElementById('formOutreachStatus');
+      if(status.running){
+        startBtn.style.display = 'none';
+        stopBtn.style.display = '';
+        statusEl.innerHTML = '<span style="color:var(--green);">Running...</span> ' +
+          (status.current_lead ? `Processing: ${status.current_lead}` : 'Processing batch...');
+        // Start polling if not already
+        if(!formPollInterval) formPollInterval = setInterval(renderFormsPage, 3000);
+      } else {
+        startBtn.style.display = '';
+        stopBtn.style.display = 'none';
+        if(status.finished_at){
+          const fin = new Date(status.finished_at);
+          statusEl.textContent = `Last run: ${fin.toLocaleTimeString()} — ${status.success} success, ${status.failed} failed`;
+        } else {
+          statusEl.textContent = 'Ready';
+        }
+        // Stop polling
+        if(formPollInterval){ clearInterval(formPollInterval); formPollInterval = null; }
+      }
+    }
+
+    // Get results table from DB
+    const data = await api('/api/form-outreach/results');
+    if(data && data.results){
+      document.getElementById('formTableBody').innerHTML = data.results.map(r => {
+        const statusTag = r.form_submission_status === 'success'
+          ? '<span class="tag tag-green">Success</span>'
+          : r.form_submission_status === 'failed'
+          ? '<span class="tag tag-red">Failed</span>'
+          : r.form_submission_status === 'processing'
+          ? '<span class="tag tag-yellow">Processing</span>'
+          : '<span class="tag">Pending</span>';
+        const timeStr = r.form_last_attempted_at
+          ? new Date(r.form_last_attempted_at).toLocaleString()
+          : '-';
+        const errorStr = r.form_error_message
+          ? `<span style="font-size:10px;color:var(--red);">${r.form_error_message.substring(0,60)}</span>`
+          : '-';
+        return `<tr>
+          <td>${r.company_name || '-'}</td>
+          <td style="color:var(--cyan);font-size:11px;">${r.website_url || '-'}</td>
+          <td style="font-size:11px;">${r.contact_page_url || '-'}</td>
+          <td>${statusTag}</td>
+          <td style="font-size:10px;color:var(--text-dim);">${timeStr}</td>
+          <td>${errorStr}</td>
+        </tr>`;
+      }).join('');
+    }
+  } else {
+    // Fallback: use local lead data
+    const filled = allLeads.filter(l=>l.form_filled);
+    const failed = allLeads.filter(l=>l.form_submission_status==='failed');
+    document.getElementById('formSubmitted').textContent = filled.length;
+    document.getElementById('formFailed').textContent = failed.length;
+    document.getElementById('formNoForm').textContent = allLeads.filter(l=>l.has_contact_form===false).length;
+    document.getElementById('formTotal').textContent = filled.length + failed.length;
+
+    document.getElementById('formTableBody').innerHTML = allLeads
+      .filter(l => l.form_submission_status && l.form_submission_status !== 'pending')
+      .slice(0,20).map(l => {
+        const statusTag = l.form_submission_status === 'success'
+          ? '<span class="tag tag-green">Success</span>'
+          : '<span class="tag tag-red">Failed</span>';
+        const timeStr = l.form_last_attempted_at
+          ? new Date(l.form_last_attempted_at).toLocaleString()
+          : '-';
+        return `<tr>
+          <td>${l.company_name || '-'}</td>
+          <td style="color:var(--cyan);font-size:11px;">${l.website_url || '-'}</td>
+          <td style="font-size:11px;">${l.contact_page_url || '-'}</td>
+          <td>${statusTag}</td>
+          <td style="font-size:10px;color:var(--text-dim);">${timeStr}</td>
+          <td>${l.form_error_message ? '<span style="font-size:10px;color:var(--red);">'+l.form_error_message.substring(0,60)+'</span>' : '-'}</td>
+        </tr>`;
+      }).join('');
+  }
+}
+
+async function startFormOutreach(){
+  const batchSize = parseInt(document.getElementById('formBatchSize').value) || 10;
+  const res = await api('/api/form-outreach/start', 'POST', {batch_size: batchSize});
+  if(res) renderFormsPage();
+}
+
+async function stopFormOutreach(){
+  await api('/api/form-outreach/stop', 'POST');
+  renderFormsPage();
 }
 
 // ═══════════════════════════════════════════════════════════════

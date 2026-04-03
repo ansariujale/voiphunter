@@ -425,6 +425,51 @@ def get_leads_for_form_fill(limit: int = 1000) -> list[dict]:
     }, order="score.desc", limit=limit)
 
 
+# ═══════════════════════════════════════════════════════════════
+# FORM OUTREACH QUERIES
+# ═══════════════════════════════════════════════════════════════
+
+def get_leads_for_form_outreach(limit: int = 10) -> list[dict]:
+    """Get leads pending form outreach (status='new' or form_submission_status='pending')."""
+    if not db:
+        return []
+    return db.select("leads", filters={
+        "form_submission_status": "eq.pending",
+        "form_filled": "eq.false",
+        "excluded": "eq.false",
+    }, order="created_at.asc", limit=limit)
+
+
+def update_form_status(lead_id: str, status: str, error_msg: str = None,
+                       form_url: str = None) -> None:
+    """Update form outreach status for a lead."""
+    if not db:
+        return
+    updates = {
+        "form_submission_status": status,
+        "form_last_attempted_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if error_msg is not None:
+        updates["form_error_message"] = error_msg
+    if form_url is not None:
+        updates["contact_page_url"] = form_url
+    db.update("leads", updates, {"id": f"eq.{lead_id}"})
+
+
+def get_form_outreach_results(limit: int = 50) -> list[dict]:
+    """Get recent form outreach results for dashboard display."""
+    if not db:
+        return []
+    return db.select("leads",
+        columns="id,company_name,website_url,contact_page_url,form_submission_status,form_error_message,form_last_attempted_at,form_filled",
+        filters={
+            "form_submission_status": "neq.pending",
+        },
+        order="form_last_attempted_at.desc",
+        limit=limit
+    )
+
+
 def get_followup_due() -> list[dict]:
     """Get leads needing follow-up emails today."""
     if not db:
