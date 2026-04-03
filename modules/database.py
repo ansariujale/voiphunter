@@ -496,6 +496,41 @@ def update_form_status(lead_id: str, status: str, error_msg: str = None,
     db.update("leads", updates, {"id": f"eq.{lead_id}"})
 
 
+def get_funnel_counts() -> dict:
+    """Get real funnel counts from database for the sales funnel page."""
+    if not db:
+        return {}
+    try:
+        total = db.count("leads")
+        qualified = db.count("leads", {"score": "gte.40"})
+        emailed = db.count("leads", {"email_sent": "eq.true"})
+        form_filled = db.count("leads", {"form_filled": "eq.true"})
+        opened = db.count("leads", {"email_opened": "eq.true"})
+        replied = db.count("leads", {"replied": "eq.true"})
+        interested = db.count("leads", {"interested": "eq.true"})
+        closed = db.count("leads", {"closed": "eq.true"})
+
+        # Revenue from closed deals
+        closed_leads = db.select("leads", columns="revenue_monthly",
+                                 filters={"closed": "eq.true"})
+        mrr = sum(r.get("revenue_monthly", 0) or 0 for r in (closed_leads or []))
+
+        return {
+            "total": total,
+            "qualified": qualified,
+            "emailed": emailed,
+            "form_filled": form_filled,
+            "opened": opened,
+            "replied": replied,
+            "interested": interested,
+            "closed": closed,
+            "mrr": mrr,
+        }
+    except Exception as e:
+        logger.error(f"Error getting funnel counts: {e}")
+        return {}
+
+
 def get_form_outreach_counts() -> dict:
     """Get total form outreach counts from database for dashboard stats."""
     if not db:

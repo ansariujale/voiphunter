@@ -2463,16 +2463,33 @@ async function renderSources(){
 // ═══════════════════════════════════════════════════════════════
 // FUNNEL
 // ═══════════════════════════════════════════════════════════════
-function renderFunnel(){
-  // Use real data from allLeads
-  const total = allLeads.length;
-  const qualified = allLeads.filter(l=>(l.score||0) >= 40).length;
-  const emailed = allLeads.filter(l=>l.email_sent).length;
-  const formFilled = allLeads.filter(l=>l.form_filled).length;
-  const opened = allLeads.filter(l=>l.email_opened).length;
-  const replied = allLeads.filter(l=>l.replied).length;
-  const interested = allLeads.filter(l=>l.interested).length;
-  const closed = allLeads.filter(l=>l.closed).length;
+async function renderFunnel(){
+  // Fetch real counts from database API (not limited allLeads)
+  let total=0, qualified=0, emailed=0, formFilled=0, opened=0, replied=0, interested=0, closed=0;
+
+  if(serverConnected){
+    const f = await api('/api/funnel');
+    if(f){
+      total = f.total || 0;
+      qualified = f.qualified || 0;
+      emailed = f.emailed || 0;
+      formFilled = f.form_filled || 0;
+      opened = f.opened || 0;
+      replied = f.replied || 0;
+      interested = f.interested || 0;
+      closed = f.closed || 0;
+    }
+  } else {
+    // Fallback to allLeads if server not connected
+    total = allLeads.length;
+    qualified = allLeads.filter(l=>(l.score||0) >= 40).length;
+    emailed = allLeads.filter(l=>l.email_sent).length;
+    formFilled = allLeads.filter(l=>l.form_filled).length;
+    opened = allLeads.filter(l=>l.email_opened).length;
+    replied = allLeads.filter(l=>l.replied).length;
+    interested = allLeads.filter(l=>l.interested).length;
+    closed = allLeads.filter(l=>l.closed).length;
+  }
 
   const pct = (v) => total > 0 ? (v/total*100).toFixed(1)+'%' : '0%';
   const widthPct = (v) => total > 0 ? Math.max(2, v/total*100) : 0;

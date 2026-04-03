@@ -910,6 +910,10 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
             from modules.database import get_form_outreach_counts
             self._json_response(get_form_outreach_counts())
 
+        elif path == "/api/funnel":
+            from modules.database import get_funnel_counts
+            self._json_response(get_funnel_counts())
+
         elif path == "/api/form-outreach/results":
             from modules.database import get_form_outreach_results
             params = parse_qs(parsed.query)
