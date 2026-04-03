@@ -783,11 +783,9 @@
       </div>
 
       <div class="stats-row">
-        <div class="stat-card green"><div class="stat-label">Submitted</div><div class="stat-value" id="formSubmitted">0</div></div>
+        <div class="stat-card green"><div class="stat-label">Success</div><div class="stat-value" id="formSubmitted">0</div></div>
         <div class="stat-card red"><div class="stat-label">Failed</div><div class="stat-value" id="formFailed">0</div></div>
-        <div class="stat-card orange"><div class="stat-label">No Form</div><div class="stat-value" id="formNoForm">0</div></div>
-        <div class="stat-card blue"><div class="stat-label">Total Processed</div><div class="stat-value" id="formTotal">0</div></div>
-        <div class="stat-card purple"><div class="stat-label">Pending</div><div class="stat-value" id="formPending">0</div></div>
+        <div class="stat-card blue"><div class="stat-label">Total</div><div class="stat-value" id="formTotal">0</div></div>
       </div>
 
       <div class="card">
@@ -2105,10 +2103,8 @@ async function renderFormsPage(){
     const counts = await api('/api/form-outreach/counts');
     if(counts){
       document.getElementById('formSubmitted').textContent = counts.success || 0;
-      document.getElementById('formFailed').textContent = counts.failed || 0;
-      document.getElementById('formNoForm').textContent = counts.no_form || 0;
+      document.getElementById('formFailed').textContent = (counts.failed || 0) + (counts.no_form || 0);
       document.getElementById('formTotal').textContent = counts.total || 0;
-      document.getElementById('formPending').textContent = counts.pending || 0;
     }
 
     // 2. Get running state for buttons/status text
@@ -2142,11 +2138,9 @@ async function renderFormsPage(){
     // Fallback: use local lead data
     const filled = allLeads.filter(l=>l.form_filled);
     const failed = allLeads.filter(l=>l.form_submission_status==='failed');
-    const noForm = allLeads.filter(l=>l.has_contact_form===false);
     document.getElementById('formSubmitted').textContent = filled.length;
     document.getElementById('formFailed').textContent = failed.length;
-    document.getElementById('formNoForm').textContent = noForm.length;
-    document.getElementById('formTotal').textContent = filled.length + failed.length + noForm.length;
+    document.getElementById('formTotal').textContent = filled.length + failed.length;
 
     document.getElementById('formTableBody').innerHTML = allLeads
       .filter(l => l.form_submission_status && l.form_submission_status !== 'pending')
