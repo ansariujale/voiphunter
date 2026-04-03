@@ -135,6 +135,24 @@ FOLLOWUP_SCHEDULE = {
 
 DAILY_FORM_TARGET = 1000
 
+# Contact data used when filling website forms
+FORM_FILL_DATA = {
+    'name': 'Mia Miller',
+    'first_name': 'Mia',
+    'last_name': 'Miller',
+    'company': 'Rozper Limited',
+    'email': 'mia@rozper.com',
+    'phone': '+1 845-318-1067',
+    'subject': 'Proposal to Buy From You',
+    'message': (
+        'We are reaching out through your website as we are interested in '
+        'purchasing your wholesale VoIP, voice, and SIP trunking services etc .'
+        'please Kindly contact me at mia@rozper.com or on Teams: '
+        'https://teams.live.com/l/invite/FEA2Q2W9LYXI2YVKQE?v=g1'
+    ),
+    'teams_id': 'https://teams.live.com/l/invite/FEA2Q2W9LYXI2YVKQE?v=g1',
+}
+
 FORM_PATHS_TO_TRY = [
     "/contact", "/contact-us", "/inquiry", "/get-quote",
     "/partnership", "/partners", "/get-in-touch",
