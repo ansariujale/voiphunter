@@ -907,11 +907,19 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
             self._json_response(get_outreach_status())
 
         elif path == "/api/form-outreach/results":
-            from modules.form_outreach import get_dashboard_results
+            from modules.database import get_form_outreach_results
             params = parse_qs(parsed.query)
-            limit = int(params.get("limit", [50])[0])
-            results = get_dashboard_results(limit=limit)
-            self._json_response({"results": results})
+            limit = int(params.get("limit", [100])[0])
+            status_filter = params.get("status", [None])[0]
+            date_from = params.get("date_from", [None])[0]
+            date_to = params.get("date_to", [None])[0]
+            search = params.get("search", [None])[0]
+            results = get_form_outreach_results(
+                limit=limit, status=status_filter,
+                date_from=date_from, date_to=date_to,
+                search=search
+            )
+            self._json_response({"results": results, "total": len(results)})
 
         elif path == "/api/email-sequences":
             from modules.database import db
