@@ -787,6 +787,7 @@
         <div class="stat-card red"><div class="stat-label">Failed</div><div class="stat-value" id="formFailed">0</div></div>
         <div class="stat-card orange"><div class="stat-label">No Form</div><div class="stat-value" id="formNoForm">0</div></div>
         <div class="stat-card blue"><div class="stat-label">Total Processed</div><div class="stat-value" id="formTotal">0</div></div>
+        <div class="stat-card purple"><div class="stat-label">Pending</div><div class="stat-value" id="formPending">0</div></div>
       </div>
 
       <div class="card">
@@ -2099,17 +2100,20 @@ function updateLivePipeline(logs, currentStep){
 let formPollInterval = null;
 
 async function renderFormsPage(){
-  // Fetch real data from API
   if(serverConnected){
-    // Get outreach status (running state + counts)
+    // 1. Get REAL total counts from database (not last batch)
+    const counts = await api('/api/form-outreach/counts');
+    if(counts){
+      document.getElementById('formSubmitted').textContent = counts.success || 0;
+      document.getElementById('formFailed').textContent = counts.failed || 0;
+      document.getElementById('formNoForm').textContent = counts.no_form || 0;
+      document.getElementById('formTotal').textContent = counts.total || 0;
+      document.getElementById('formPending').textContent = counts.pending || 0;
+    }
+
+    // 2. Get running state for buttons/status text
     const status = await api('/api/form-outreach/status');
     if(status){
-      document.getElementById('formSubmitted').textContent = status.success || 0;
-      document.getElementById('formFailed').textContent = status.failed || 0;
-      document.getElementById('formNoForm').textContent = status.no_form || 0;
-      document.getElementById('formTotal').textContent = status.total_processed || 0;
-
-      // Update button visibility
       const startBtn = document.getElementById('btnStartFormOutreach');
       const stopBtn = document.getElementById('btnStopFormOutreach');
       const statusEl = document.getElementById('formOutreachStatus');
@@ -2118,7 +2122,6 @@ async function renderFormsPage(){
         stopBtn.style.display = '';
         statusEl.innerHTML = '<span style="color:var(--green);">Running...</span> ' +
           (status.current_lead ? `Processing: ${status.current_lead}` : 'Processing batch...');
-        // Start polling if not already
         if(!formPollInterval) formPollInterval = setInterval(renderFormsPage, 3000);
       } else {
         startBtn.style.display = '';
@@ -2129,21 +2132,21 @@ async function renderFormsPage(){
         } else {
           statusEl.textContent = 'Ready';
         }
-        // Stop polling
         if(formPollInterval){ clearInterval(formPollInterval); formPollInterval = null; }
       }
     }
 
-    // Get results table from DB with filters
+    // 3. Get results table from DB with filters
     await loadFormResults();
   } else {
     // Fallback: use local lead data
     const filled = allLeads.filter(l=>l.form_filled);
     const failed = allLeads.filter(l=>l.form_submission_status==='failed');
+    const noForm = allLeads.filter(l=>l.has_contact_form===false);
     document.getElementById('formSubmitted').textContent = filled.length;
     document.getElementById('formFailed').textContent = failed.length;
-    document.getElementById('formNoForm').textContent = allLeads.filter(l=>l.has_contact_form===false).length;
-    document.getElementById('formTotal').textContent = filled.length + failed.length;
+    document.getElementById('formNoForm').textContent = noForm.length;
+    document.getElementById('formTotal').textContent = filled.length + failed.length + noForm.length;
 
     document.getElementById('formTableBody').innerHTML = allLeads
       .filter(l => l.form_submission_status && l.form_submission_status !== 'pending')

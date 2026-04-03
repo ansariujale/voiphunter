@@ -906,6 +906,10 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
             from modules.form_outreach import get_outreach_status
             self._json_response(get_outreach_status())
 
+        elif path == "/api/form-outreach/counts":
+            from modules.database import get_form_outreach_counts
+            self._json_response(get_form_outreach_counts())
+
         elif path == "/api/form-outreach/results":
             from modules.database import get_form_outreach_results
             params = parse_qs(parsed.query)

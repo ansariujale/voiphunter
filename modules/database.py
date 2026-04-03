@@ -456,6 +456,39 @@ def update_form_status(lead_id: str, status: str, error_msg: str = None,
     db.update("leads", updates, {"id": f"eq.{lead_id}"})
 
 
+def get_form_outreach_counts() -> dict:
+    """Get total form outreach counts from database for dashboard stats."""
+    if not db:
+        return {"success": 0, "failed": 0, "no_form": 0, "processing": 0, "pending": 0, "total": 0}
+
+    try:
+        success = db.count("leads", {"form_submission_status": "eq.success"})
+        failed = db.count("leads", {"form_submission_status": "eq.failed"})
+        processing = db.count("leads", {"form_submission_status": "eq.processing"})
+        pending = db.count("leads", {"form_submission_status": "eq.pending"})
+
+        # No form = failed with specific error message
+        no_form_leads = db.select("leads",
+            columns="id",
+            filters={
+                "form_submission_status": "eq.failed",
+                "form_error_message": "eq.No contact form found",
+            }, limit=10000)
+        no_form = len(no_form_leads) if no_form_leads else 0
+
+        return {
+            "success": success,
+            "failed": failed - no_form,  # failed excluding no_form
+            "no_form": no_form,
+            "processing": processing,
+            "pending": pending,
+            "total": success + failed + processing,
+        }
+    except Exception as e:
+        logger.error(f"Error getting form outreach counts: {e}")
+        return {"success": 0, "failed": 0, "no_form": 0, "processing": 0, "pending": 0, "total": 0}
+
+
 def get_form_outreach_results(limit: int = 50, status: str = None,
                               date_from: str = None, date_to: str = None,
                               search: str = None) -> list[dict]:
