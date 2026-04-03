@@ -785,10 +785,9 @@
       </div>
 
       <div class="stats-row">
-        <div class="stat-card green"><div class="stat-label">Submitted</div><div class="stat-value" id="formSubmitted">0</div></div>
+        <div class="stat-card green"><div class="stat-label">Success</div><div class="stat-value" id="formSubmitted">0</div></div>
         <div class="stat-card red"><div class="stat-label">Failed</div><div class="stat-value" id="formFailed">0</div></div>
-        <div class="stat-card orange"><div class="stat-label">No Form</div><div class="stat-value" id="formNoForm">0</div></div>
-        <div class="stat-card blue"><div class="stat-label">Total Processed</div><div class="stat-value" id="formTotal">0</div></div>
+        <div class="stat-card blue"><div class="stat-label">Total</div><div class="stat-value" id="formTotal">0</div></div>
       </div>
 
       <div class="card">
@@ -2150,17 +2149,18 @@ function updateLivePipeline(logs, currentStep){
 let formPollInterval = null;
 
 async function renderFormsPage(){
-  // Fetch real data from API
   if(serverConnected){
-    // Get outreach status (running state + counts)
+    // 1. Get REAL total counts from database (not last batch)
+    const counts = await api('/api/form-outreach/counts');
+    if(counts){
+      document.getElementById('formSubmitted').textContent = counts.success || 0;
+      document.getElementById('formFailed').textContent = (counts.failed || 0) + (counts.no_form || 0);
+      document.getElementById('formTotal').textContent = counts.total || 0;
+    }
+
+    // 2. Get running state for buttons/status text
     const status = await api('/api/form-outreach/status');
     if(status){
-      document.getElementById('formSubmitted').textContent = status.success || 0;
-      document.getElementById('formFailed').textContent = status.failed || 0;
-      document.getElementById('formNoForm').textContent = status.no_form || 0;
-      document.getElementById('formTotal').textContent = status.total_processed || 0;
-
-      // Update button visibility
       const startBtn = document.getElementById('btnStartFormOutreach');
       const stopBtn = document.getElementById('btnStopFormOutreach');
       const statusEl = document.getElementById('formOutreachStatus');
@@ -2169,7 +2169,6 @@ async function renderFormsPage(){
         stopBtn.style.display = '';
         statusEl.innerHTML = '<span style="color:var(--green);">Running...</span> ' +
           (status.current_lead ? `Processing: ${status.current_lead}` : 'Processing batch...');
-        // Start polling if not already
         if(!formPollInterval) formPollInterval = setInterval(renderFormsPage, 3000);
       } else {
         startBtn.style.display = '';
@@ -2180,12 +2179,11 @@ async function renderFormsPage(){
         } else {
           statusEl.textContent = 'Ready';
         }
-        // Stop polling
         if(formPollInterval){ clearInterval(formPollInterval); formPollInterval = null; }
       }
     }
 
-    // Get results table from DB with filters
+    // 3. Get results table from DB with filters
     await loadFormResults();
   } else {
     // Fallback: use local lead data
@@ -2193,7 +2191,6 @@ async function renderFormsPage(){
     const failed = allLeads.filter(l=>l.form_submission_status==='failed');
     document.getElementById('formSubmitted').textContent = filled.length;
     document.getElementById('formFailed').textContent = failed.length;
-    document.getElementById('formNoForm').textContent = allLeads.filter(l=>l.has_contact_form===false).length;
     document.getElementById('formTotal').textContent = filled.length + failed.length;
 
     document.getElementById('formTableBody').innerHTML = allLeads
@@ -2517,16 +2514,33 @@ async function renderSources(){
 // ═══════════════════════════════════════════════════════════════
 // FUNNEL
 // ═══════════════════════════════════════════════════════════════
-function renderFunnel(){
-  // Use real data from allLeads
-  const total = allLeads.length;
-  const qualified = allLeads.filter(l=>(l.score||0) >= 40).length;
-  const emailed = allLeads.filter(l=>l.email_sent).length;
-  const formFilled = allLeads.filter(l=>l.form_filled).length;
-  const opened = allLeads.filter(l=>l.email_opened).length;
-  const replied = allLeads.filter(l=>l.replied).length;
-  const interested = allLeads.filter(l=>l.interested).length;
-  const closed = allLeads.filter(l=>l.closed).length;
+async function renderFunnel(){
+  // Fetch real counts from database API (not limited allLeads)
+  let total=0, qualified=0, emailed=0, formFilled=0, opened=0, replied=0, interested=0, closed=0;
+
+  if(serverConnected){
+    const f = await api('/api/funnel');
+    if(f){
+      total = f.total || 0;
+      qualified = f.qualified || 0;
+      emailed = f.emailed || 0;
+      formFilled = f.form_filled || 0;
+      opened = f.opened || 0;
+      replied = f.replied || 0;
+      interested = f.interested || 0;
+      closed = f.closed || 0;
+    }
+  } else {
+    // Fallback to allLeads if server not connected
+    total = allLeads.length;
+    qualified = allLeads.filter(l=>(l.score||0) >= 40).length;
+    emailed = allLeads.filter(l=>l.email_sent).length;
+    formFilled = allLeads.filter(l=>l.form_filled).length;
+    opened = allLeads.filter(l=>l.email_opened).length;
+    replied = allLeads.filter(l=>l.replied).length;
+    interested = allLeads.filter(l=>l.interested).length;
+    closed = allLeads.filter(l=>l.closed).length;
+  }
 
   const pct = (v) => total > 0 ? (v/total*100).toFixed(1)+'%' : '0%';
   const widthPct = (v) => total > 0 ? Math.max(2, v/total*100) : 0;
