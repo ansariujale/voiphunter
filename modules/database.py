@@ -430,14 +430,54 @@ def get_leads_for_form_fill(limit: int = 1000) -> list[dict]:
 # ═══════════════════════════════════════════════════════════════
 
 def get_leads_for_form_outreach(limit: int = 10) -> list[dict]:
-    """Get leads pending form outreach (status='new' or form_submission_status='pending')."""
+    """Get leads pending form outreach — never attempted before.
+    Skips any lead whose website_url was already used in a previous attempt."""
     if not db:
         return []
-    return db.select("leads", filters={
+
+    # Step 1: Get candidate leads (pending + never filled)
+    candidates = db.select("leads", filters={
         "form_submission_status": "eq.pending",
         "form_filled": "eq.false",
         "excluded": "eq.false",
-    }, order="created_at.asc", limit=limit)
+    }, order="created_at.asc", limit=limit * 3)  # fetch extra to allow filtering
+
+    if not candidates:
+        return []
+
+    # Step 2: Get all website_urls that have already been attempted
+    attempted = db.select("leads",
+        columns="website_url",
+        filters={"form_submission_status": "neq.pending"},
+        limit=10000
+    )
+    attempted_urls = set()
+    for row in (attempted or []):
+        url = (row.get("website_url") or "").strip().lower().rstrip("/")
+        if url:
+            attempted_urls.add(url)
+
+    # Step 3: Filter out candidates whose website was already attempted
+    fresh_leads = []
+    seen_urls = set()
+    for lead in candidates:
+        url = (lead.get("website_url") or "").strip().lower().rstrip("/")
+        if not url:
+            continue
+        if url in attempted_urls:
+            # Mark this lead as already done so it's not picked again
+            update_form_status(lead["id"], "failed", error_msg="Website already submitted previously")
+            continue
+        if url in seen_urls:
+            # Duplicate within this batch
+            update_form_status(lead["id"], "failed", error_msg="Duplicate website in batch")
+            continue
+        seen_urls.add(url)
+        fresh_leads.append(lead)
+        if len(fresh_leads) >= limit:
+            break
+
+    return fresh_leads
 
 
 def update_form_status(lead_id: str, status: str, error_msg: str = None,
@@ -454,6 +494,74 @@ def update_form_status(lead_id: str, status: str, error_msg: str = None,
     if form_url is not None:
         updates["contact_page_url"] = form_url
     db.update("leads", updates, {"id": f"eq.{lead_id}"})
+
+
+def get_funnel_counts() -> dict:
+    """Get real funnel counts from database for the sales funnel page."""
+    if not db:
+        return {}
+    try:
+        total = db.count("leads")
+        qualified = db.count("leads", {"score": "gte.40"})
+        emailed = db.count("leads", {"email_sent": "eq.true"})
+        form_filled = db.count("leads", {"form_filled": "eq.true"})
+        opened = db.count("leads", {"email_opened": "eq.true"})
+        replied = db.count("leads", {"replied": "eq.true"})
+        interested = db.count("leads", {"interested": "eq.true"})
+        closed = db.count("leads", {"closed": "eq.true"})
+
+        # Revenue from closed deals
+        closed_leads = db.select("leads", columns="revenue_monthly",
+                                 filters={"closed": "eq.true"})
+        mrr = sum(r.get("revenue_monthly", 0) or 0 for r in (closed_leads or []))
+
+        return {
+            "total": total,
+            "qualified": qualified,
+            "emailed": emailed,
+            "form_filled": form_filled,
+            "opened": opened,
+            "replied": replied,
+            "interested": interested,
+            "closed": closed,
+            "mrr": mrr,
+        }
+    except Exception as e:
+        logger.error(f"Error getting funnel counts: {e}")
+        return {}
+
+
+def get_form_outreach_counts() -> dict:
+    """Get total form outreach counts from database for dashboard stats."""
+    if not db:
+        return {"success": 0, "failed": 0, "no_form": 0, "processing": 0, "pending": 0, "total": 0}
+
+    try:
+        success = db.count("leads", {"form_submission_status": "eq.success"})
+        failed = db.count("leads", {"form_submission_status": "eq.failed"})
+        processing = db.count("leads", {"form_submission_status": "eq.processing"})
+        pending = db.count("leads", {"form_submission_status": "eq.pending"})
+
+        # No form = failed with specific error message
+        no_form_leads = db.select("leads",
+            columns="id",
+            filters={
+                "form_submission_status": "eq.failed",
+                "form_error_message": "eq.No contact form found",
+            }, limit=10000)
+        no_form = len(no_form_leads) if no_form_leads else 0
+
+        return {
+            "success": success,
+            "failed": failed - no_form,  # failed excluding no_form
+            "no_form": no_form,
+            "processing": processing,
+            "pending": pending,
+            "total": success + failed + processing,
+        }
+    except Exception as e:
+        logger.error(f"Error getting form outreach counts: {e}")
+        return {"success": 0, "failed": 0, "no_form": 0, "processing": 0, "pending": 0, "total": 0}
 
 
 def get_form_outreach_results(limit: int = 50, status: str = None,
