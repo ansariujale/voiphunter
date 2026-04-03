@@ -406,7 +406,8 @@ async def _page_has_form(page: Page) -> bool:
                 const hasEmail = Array.from(inputs).some(i =>
                     (i.type || '').includes('email') ||
                     (i.name || '').toLowerCase().includes('email') ||
-                    (i.placeholder || '').toLowerCase().includes('email')
+                    (i.placeholder || '').toLowerCase().includes('email') ||
+                    (i.id || '').toLowerCase().includes('email')
                 );
                 const hasMessage = Array.from(inputs).some(i =>
                     i.tagName === 'TEXTAREA' ||
@@ -415,13 +416,24 @@ async def _page_has_form(page: Page) -> bool:
                     (i.name || '').toLowerCase().includes('inquiry') ||
                     (i.name || '').toLowerCase().includes('enquiry') ||
                     (i.name || '').toLowerCase().includes('details') ||
-                    (i.name || '').toLowerCase().includes('description')
+                    (i.name || '').toLowerCase().includes('description') ||
+                    (i.id || '').toLowerCase().includes('message') ||
+                    (i.placeholder || '').toLowerCase().includes('message')
+                );
+                const hasName = Array.from(inputs).some(i =>
+                    (i.name || '').toLowerCase().includes('name') ||
+                    (i.id || '').toLowerCase().includes('name') ||
+                    (i.placeholder || '').toLowerCase().includes('name')
                 );
                 // A contact form typically has email + message/textarea fields
                 if (hasEmail && hasMessage && inputs.length >= 3) {
                     return true;
                 }
-                // Also accept forms with email + 3+ fields even without textarea
+                // Accept forms with email + name + 3+ fields (no textarea required)
+                if (hasEmail && hasName && inputs.length >= 3) {
+                    return true;
+                }
+                // Also accept forms with email + 4+ fields even without textarea
                 if (hasEmail && inputs.length >= 4) {
                     return true;
                 }
@@ -637,28 +649,64 @@ async def fill_contact_form(page: Page, lead: dict) -> dict:
 
             try:
                 await human_delay(0.5, 1.5)
-                # Try native Playwright fill first
+                field_filled = False
+
+                # Method 1: Native Playwright fill (best for React/Vue/Angular)
                 try:
                     await page.click(selector, timeout=3000)
                     await human_delay(0.2, 0.5)
                     await page.fill(selector, value, timeout=3000)
-                except Exception:
-                    # Fallback: use evaluate with comprehensive event dispatch
-                    await page.evaluate("""({sel, val}) => {
-                        const el = document.querySelector(sel);
-                        if (el) {
-                            el.focus();
-                            el.value = val;
+                    # Verify the value stuck
+                    actual = await page.evaluate(f"document.querySelector('{selector}')?.value || ''")
+                    if actual == value:
+                        field_filled = True
+                        logger.debug(f"Filled {field_type} via page.fill: {selector}")
+                except Exception as e1:
+                    logger.debug(f"page.fill failed for {field_type}: {e1}")
+
+                # Method 2: Click + keyboard.type (works with JS frameworks)
+                if not field_filled:
+                    try:
+                        await page.click(selector, timeout=3000)
+                        await page.keyboard.press("Control+a")
+                        await page.keyboard.type(value, delay=10)
+                        actual = await page.evaluate(f"document.querySelector('{selector}')?.value || ''")
+                        if value in actual:
+                            field_filled = True
+                            logger.debug(f"Filled {field_type} via keyboard.type: {selector}")
+                    except Exception as e2:
+                        logger.debug(f"keyboard.type failed for {field_type}: {e2}")
+
+                # Method 3: JS with React-compatible event dispatch
+                if not field_filled:
+                    try:
+                        await page.evaluate("""({sel, val}) => {
+                            const el = document.querySelector(sel);
+                            if (!el) return;
+                            // React compat: reset value tracker
+                            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
+                                window.HTMLInputElement.prototype, 'value'
+                            )?.set || Object.getOwnPropertyDescriptor(
+                                window.HTMLTextAreaElement.prototype, 'value'
+                            )?.set;
+                            if (nativeInputValueSetter) {
+                                nativeInputValueSetter.call(el, val);
+                            } else {
+                                el.value = val;
+                            }
                             el.dispatchEvent(new Event('input', { bubbles: true }));
                             el.dispatchEvent(new Event('change', { bubbles: true }));
                             el.dispatchEvent(new Event('blur', { bubbles: true }));
-                            // React compatibility
-                            if (el._valueTracker) { el._valueTracker.setValue(''); }
-                            el.dispatchEvent(new Event('input', { bubbles: true }));
-                        }
-                    }""", {"sel": selector, "val": value})
-                filled_count += 1
-                logger.debug(f"Filled {field_type}: {selector}")
+                        }""", {"sel": selector, "val": value})
+                        field_filled = True
+                        logger.debug(f"Filled {field_type} via JS setter: {selector}")
+                    except Exception as e3:
+                        logger.debug(f"JS setter failed for {field_type}: {e3}")
+
+                if field_filled:
+                    filled_count += 1
+                else:
+                    logger.warning(f"All fill methods failed for {field_type} ({selector})")
             except Exception as e:
                 logger.debug(f"Failed to fill {field_type} ({selector}): {e}")
 
@@ -744,7 +792,11 @@ async def _detect_submission_success(page: Page, url_before: str) -> bool:
     """Check if the form was submitted successfully."""
     try:
         # Check for URL change (often redirects to thank-you page)
-        if page.url != url_before and ('thank' in page.url.lower() or 'success' in page.url.lower()):
+        if page.url != url_before:
+            url_lower = page.url.lower()
+            if any(w in url_lower for w in ['thank', 'success', 'confirm', 'done', 'submitted']):
+                return True
+            # Any URL change after submit is often a success redirect
             return True
 
         # Check page content for success indicators
@@ -757,11 +809,44 @@ async def _detect_submission_success(page: Page, url_before: str) -> bool:
                 'request received', 'inquiry received', 'we\\'ll be in touch',
                 'we will be in touch', 'confirmation', 'been submitted',
                 'appreciate your', 'hear from us', 'enquiry sent',
-                'contact form submitted', 'we will contact you'
+                'contact form submitted', 'we will contact you',
+                'form has been submitted', 'your request has been',
+                'sent successfully', 'submitted successfully'
             ];
             return successPhrases.some(phrase => text.includes(phrase));
         }""")
-        return success
+        if success:
+            return True
+
+        # Check if form fields were cleared (many AJAX forms clear on success)
+        fields_cleared = await page.evaluate("""() => {
+            const inputs = document.querySelectorAll('input[type="text"], input[type="email"], input[type="tel"], textarea');
+            if (inputs.length === 0) return false;
+            let emptyCount = 0;
+            for (const inp of inputs) {
+                if (!inp.value || inp.value.trim() === '') emptyCount++;
+            }
+            // If most fields are now empty, form likely cleared after submit
+            return emptyCount >= inputs.length * 0.7;
+        }""")
+        if fields_cleared:
+            return True
+
+        # Check if submit button text changed (e.g. "Sending..." or "Sent!")
+        btn_changed = await page.evaluate("""() => {
+            const btns = document.querySelectorAll('button, input[type="submit"]');
+            for (const btn of btns) {
+                const text = (btn.textContent || btn.value || '').toLowerCase();
+                if (text.includes('sent') || text.includes('sending') || text.includes('done') ||
+                    text.includes('submitted') || text.includes('success')) return true;
+                if (btn.disabled) return true;
+            }
+            return false;
+        }""")
+        if btn_changed:
+            return True
+
+        return False
     except Exception:
         # If page navigated away, likely success
         return True
