@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "voiphunter",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-u", "server.py"],
+      "env": {"NOBROWSER": "1"},
+      "port": 8000
+    }
+  ]
+}

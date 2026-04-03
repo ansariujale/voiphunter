@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:apify.com)",
+      "WebFetch(domain:api.apify.com)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''config.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''config.py OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''modules/events.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''events.py OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''modules/email_queue.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''email_queue.py OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''server.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''server.py OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''modules/email_queue.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''OK''\\)\")",
+      "Bash(python test_email.py)",
+      "Bash(curl -s -o /dev/null -w \"HTTP Status: %{http_code}, Content-Type: %{content_type}, Size: %{size_download} bytes\\\\n\" \"https://diysdstjrazmvxbjnfaq.supabase.co/functions/v1/track-email?id=328d9c6e-fea1-491e-b39b-77f8c8475cfb\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP Status: %{http_code}\\\\n\" -H \"User-Agent: Mozilla/5.0 Gmail\" \"https://diysdstjrazmvxbjnfaq.supabase.co/functions/v1/track-email?id=328d9c6e-fea1-491e-b39b-77f8c8475cfb\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(python send_10_test.py)",
+      "Bash(pip install:*)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''modules/ai_client.py'',encoding=''utf-8''\\).read\\(\\)\\); print\\(''ai_client OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''modules/email_variants.py'',encoding=''utf-8''\\).read\\(\\)\\); print\\(''email_variants OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''modules/qualifier.py'',encoding=''utf-8''\\).read\\(\\)\\); print\\(''qualifier OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''server.py'',encoding=''utf-8''\\).read\\(\\)\\); print\\(''server OK''\\)\")",
+      "Bash(python -c \":*)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''server.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''OK''\\)\")",
+      "Bash(npx create-next-app@latest frontend --typescript --tailwind --eslint --app --src-dir --no-import-alias --use-npm)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(timeout 8)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(rd /s /q \"C:\\\\Users\\\\Admin\\\\Desktop\\\\voiphunter\\\\frontend\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''modules/reply_tracker.py'',encoding=''utf-8''\\).read\\(\\)\\); print\\(''reply_tracker OK''\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\(''server.py'',encoding=''utf-8''\\).read\\(\\)\\); ast.parse\\(open\\(''modules/email_queue.py'',encoding=''utf-8''\\).read\\(\\)\\); print\\(''OK''\\)\")"
+    ]
+  }
+}
