@@ -16,7 +16,7 @@ from modules.database import (
     get_form_outreach_results,
     update_lead,
 )
-from modules.form_filler import run_form_filling
+from modules.form_filler import run_form_filling, clean_website_url
 
 logger = logging.getLogger("wholesalehunter.form_outreach")
 
@@ -97,6 +97,15 @@ async def run_form_outreach_async(batch_size: int = 10) -> dict:
             return {"total": 0, "success": 0, "failed": 0, "no_form": 0, "message": "No pending leads"}
 
         logger.info(f"Found {len(leads)} leads for form outreach")
+
+        # Step 1b: Clean all website URLs (strip endpoints, keep base domain)
+        for lead in leads:
+            raw_url = lead.get("website_url", "")
+            if raw_url:
+                cleaned = clean_website_url(raw_url)
+                if cleaned != raw_url:
+                    logger.info(f"Cleaned URL: {raw_url} → {cleaned}")
+                    lead["website_url"] = cleaned
 
         # Step 2: Mark all as processing
         for lead in leads:
