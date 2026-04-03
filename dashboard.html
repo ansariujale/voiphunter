@@ -790,7 +790,46 @@
       </div>
 
       <div class="card">
-        <h3>Form Submission Results</h3>
+        <h3 style="margin-bottom:12px;">Form Submission Results</h3>
+
+        <!-- Filter Bar -->
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;padding:12px 14px;background:var(--surface2);border-radius:8px;border:1px solid var(--border);">
+          <!-- Status Filter -->
+          <div style="display:flex;align-items:center;gap:5px;">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">Status:</label>
+            <select id="formFilterStatus" onchange="applyFormFilters()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;min-width:100px;">
+              <option value="">All</option>
+              <option value="success">Success</option>
+              <option value="failed">Failed</option>
+              <option value="processing">Processing</option>
+            </select>
+          </div>
+
+          <!-- Date From -->
+          <div style="display:flex;align-items:center;gap:5px;">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">From:</label>
+            <input type="date" id="formFilterDateFrom" onchange="applyFormFilters()" onclick="this.showPicker()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;color-scheme:dark;">
+          </div>
+
+          <!-- Date To -->
+          <div style="display:flex;align-items:center;gap:5px;">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">To:</label>
+            <input type="date" id="formFilterDateTo" onchange="applyFormFilters()" onclick="this.showPicker()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;cursor:pointer;color-scheme:dark;">
+          </div>
+
+          <!-- Search -->
+          <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:150px;">
+            <label style="font-size:11px;color:var(--text-muted);white-space:nowrap;">Search:</label>
+            <input type="text" id="formFilterSearch" placeholder="Company or URL..." oninput="debounceFormFilter()" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px;width:100%;">
+          </div>
+
+          <!-- Result count + Reset -->
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span id="formFilterCount" style="font-size:11px;color:var(--text-dim);"></span>
+            <button onclick="resetFormFilters()" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font-size:11px;cursor:pointer;">Reset</button>
+          </div>
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead><tr><th>Company</th><th>Website</th><th>Form URL</th><th>Status</th><th>Last Attempt</th><th>Error</th></tr></thead>
@@ -2095,33 +2134,8 @@ async function renderFormsPage(){
       }
     }
 
-    // Get results table from DB
-    const data = await api('/api/form-outreach/results');
-    if(data && data.results){
-      document.getElementById('formTableBody').innerHTML = data.results.map(r => {
-        const statusTag = r.form_submission_status === 'success'
-          ? '<span class="tag tag-green">Success</span>'
-          : r.form_submission_status === 'failed'
-          ? '<span class="tag tag-red">Failed</span>'
-          : r.form_submission_status === 'processing'
-          ? '<span class="tag tag-yellow">Processing</span>'
-          : '<span class="tag">Pending</span>';
-        const timeStr = r.form_last_attempted_at
-          ? new Date(r.form_last_attempted_at).toLocaleString()
-          : '-';
-        const errorStr = r.form_error_message
-          ? `<span style="font-size:10px;color:var(--red);">${r.form_error_message.substring(0,60)}</span>`
-          : '-';
-        return `<tr>
-          <td>${r.company_name || '-'}</td>
-          <td style="color:var(--cyan);font-size:11px;">${r.website_url || '-'}</td>
-          <td style="font-size:11px;">${r.contact_page_url || '-'}</td>
-          <td>${statusTag}</td>
-          <td style="font-size:10px;color:var(--text-dim);">${timeStr}</td>
-          <td>${errorStr}</td>
-        </tr>`;
-      }).join('');
-    }
+    // Get results table from DB with filters
+    await loadFormResults();
   } else {
     // Fallback: use local lead data
     const filled = allLeads.filter(l=>l.form_filled);
@@ -2176,6 +2190,80 @@ async function startFormOutreach(){
 async function stopFormOutreach(){
   await api('/api/form-outreach/stop', 'POST');
   renderFormsPage();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FORM RESULTS FILTERING
+// ═══════════════════════════════════════════════════════════════
+
+let _formFilterTimer = null;
+
+function debounceFormFilter(){
+  clearTimeout(_formFilterTimer);
+  _formFilterTimer = setTimeout(applyFormFilters, 400);
+}
+
+async function applyFormFilters(){
+  await loadFormResults();
+}
+
+function resetFormFilters(){
+  document.getElementById('formFilterStatus').value = '';
+  document.getElementById('formFilterDateFrom').value = '';
+  document.getElementById('formFilterDateTo').value = '';
+  document.getElementById('formFilterSearch').value = '';
+  document.getElementById('formFilterCount').textContent = '';
+  loadFormResults();
+}
+
+async function loadFormResults(){
+  // Build query params from filter inputs
+  const status = document.getElementById('formFilterStatus')?.value || '';
+  const dateFrom = document.getElementById('formFilterDateFrom')?.value || '';
+  const dateTo = document.getElementById('formFilterDateTo')?.value || '';
+  const search = document.getElementById('formFilterSearch')?.value || '';
+
+  let url = '/api/form-outreach/results?limit=200';
+  if(status) url += '&status=' + encodeURIComponent(status);
+  if(dateFrom) url += '&date_from=' + encodeURIComponent(dateFrom);
+  if(dateTo) url += '&date_to=' + encodeURIComponent(dateTo);
+  if(search) url += '&search=' + encodeURIComponent(search);
+
+  const data = await api(url);
+  if(data && data.results){
+    // Show result count
+    const countEl = document.getElementById('formFilterCount');
+    if(countEl){
+      const hasFilter = status || dateFrom || dateTo || search;
+      countEl.textContent = hasFilter ? `${data.results.length} results` : '';
+    }
+
+    document.getElementById('formTableBody').innerHTML = data.results.length === 0
+      ? '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:24px;">No results match your filters</td></tr>'
+      : data.results.map(r => {
+        const statusTag = r.form_submission_status === 'success'
+          ? '<span class="tag tag-green">Success</span>'
+          : r.form_submission_status === 'failed'
+          ? '<span class="tag tag-red">Failed</span>'
+          : r.form_submission_status === 'processing'
+          ? '<span class="tag tag-yellow">Processing</span>'
+          : '<span class="tag">Pending</span>';
+        const timeStr = r.form_last_attempted_at
+          ? new Date(r.form_last_attempted_at).toLocaleString()
+          : '-';
+        const errorStr = r.form_error_message
+          ? `<span style="font-size:10px;color:var(--red);">${r.form_error_message.substring(0,80)}</span>`
+          : '-';
+        return `<tr>
+          <td>${r.company_name || '-'}</td>
+          <td style="color:var(--cyan);font-size:11px;">${r.website_url || '-'}</td>
+          <td style="font-size:11px;">${r.contact_page_url || '-'}</td>
+          <td>${statusTag}</td>
+          <td style="font-size:10px;color:var(--text-dim);">${timeStr}</td>
+          <td>${errorStr}</td>
+        </tr>`;
+      }).join('');
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

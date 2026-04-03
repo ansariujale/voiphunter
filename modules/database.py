@@ -456,18 +456,54 @@ def update_form_status(lead_id: str, status: str, error_msg: str = None,
     db.update("leads", updates, {"id": f"eq.{lead_id}"})
 
 
-def get_form_outreach_results(limit: int = 50) -> list[dict]:
-    """Get recent form outreach results for dashboard display."""
+def get_form_outreach_results(limit: int = 50, status: str = None,
+                              date_from: str = None, date_to: str = None,
+                              search: str = None) -> list[dict]:
+    """Get form outreach results for dashboard with optional filters.
+
+    Args:
+        limit: max rows to return
+        status: filter by form_submission_status (e.g. 'success', 'failed')
+        date_from: ISO date string, only results on or after this date
+        date_to: ISO date string, only results on or before this date
+        search: text search against company_name or website_url
+    """
     if not db:
         return []
-    return db.select("leads",
+    filters = {
+        "form_submission_status": "neq.pending",
+    }
+    if status and status in ("success", "failed", "processing"):
+        filters["form_submission_status"] = f"eq.{status}"
+    if date_from:
+        filters["form_last_attempted_at"] = f"gte.{date_from}"
+    if date_to:
+        # PostgREST uses separate keys for range — we need a unique key
+        # Use lte. on the same column. Supabase REST supports multiple
+        # filters on the same column via `and` or by passing both.
+        # For simplicity we combine with date_from using `and` syntax.
+        if date_from:
+            # Both from and to — use 'and' filter syntax
+            filters.pop("form_last_attempted_at", None)
+            filters["and"] = f"(form_last_attempted_at.gte.{date_from},form_last_attempted_at.lte.{date_to}T23:59:59Z)"
+        else:
+            filters["form_last_attempted_at"] = f"lte.{date_to}T23:59:59Z"
+
+    results = db.select("leads",
         columns="id,company_name,website_url,contact_page_url,form_submission_status,form_error_message,form_last_attempted_at,form_filled",
-        filters={
-            "form_submission_status": "neq.pending",
-        },
+        filters=filters,
         order="form_last_attempted_at.desc",
         limit=limit
     )
+
+    # Client-side text search (PostgREST ilike requires specific setup)
+    if search and results:
+        s = search.lower()
+        results = [r for r in results
+                   if s in (r.get("company_name") or "").lower()
+                   or s in (r.get("website_url") or "").lower()]
+
+    return results
 
 
 def get_followup_due() -> list[dict]:
