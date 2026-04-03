@@ -656,6 +656,7 @@
           <label style="font-size:12px;color:var(--text-muted);">Batch Size:</label>
           <input type="number" id="formBatchSize" value="10" min="1" max="100" style="width:60px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:13px;text-align:center;">
         </div>
+        <button id="btnCleanUrls" onclick="cleanFormUrls()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:600;font-size:11px;cursor:pointer;letter-spacing:0.3px;" title="Strip all endpoints from pending URLs to keep base domain only">Clean URLs</button>
         <button id="btnStartFormOutreach" onclick="startFormOutreach()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--green);color:#000;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Start Batch</button>
         <button id="btnStopFormOutreach" onclick="stopFormOutreach()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--red);color:#fff;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;display:none;">Stop</button>
         <div id="formOutreachStatus" style="font-size:11px;color:var(--text-dim);margin-left:auto;"></div>
@@ -1955,6 +1956,21 @@ async function renderFormsPage(){
         </tr>`;
       }).join('');
   }
+}
+
+async function cleanFormUrls(){
+  const btn = document.getElementById('btnCleanUrls');
+  btn.textContent = 'Cleaning...';
+  btn.disabled = true;
+  const res = await api('/api/form-outreach/clean-urls', 'POST');
+  if(res){
+    const msg = `Cleaned ${res.cleaned||0} of ${res.total||0} URLs`;
+    document.getElementById('formOutreachStatus').textContent = msg;
+    alert(msg);
+  }
+  btn.textContent = 'Clean URLs';
+  btn.disabled = false;
+  renderFormsPage();
 }
 
 async function startFormOutreach(){
