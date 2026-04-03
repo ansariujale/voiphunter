@@ -1675,6 +1675,8 @@ function renderDashboardFromAPI(data){
   animateStat(document.getElementById('statInterested'), (s.interested||0).toLocaleString());
   animateStat(document.getElementById('statClosed'), (s.closed||0).toLocaleString());
   animateStat(document.getElementById('statLeadsChange'), '+'+(data.today?.leads_added||0)+' today');
+  animateStat(document.getElementById('statEmailsChange'), '+'+(data.today?.emails_sent||0)+' today');
+  animateStat(document.getElementById('statFormsChange'), '+'+(data.today?.forms_filled || 0)+ ' today');
   animateStat(document.getElementById('statMRR'), '$'+(s.mrr||0).toLocaleString()+' MRR');
   document.getElementById('navLeadCount').textContent = (data.total_leads||0).toLocaleString();
   document.getElementById('navEmailCount').textContent = (s.emailed||0).toLocaleString();
@@ -1701,14 +1703,17 @@ function renderDashboard(){
   const revenue = allLeads.reduce((s,l)=>s+(l.revenue_monthly||0),0);
   const today = new Date().toISOString().slice(0,10);
   const todayLeads = allLeads.filter(l=>l.created_at&&l.created_at.startsWith(today)).length;
-
+  const todayEmails = allLeads.filter(l=>l.email_sent && l.email_sent_at.startsWith(today)).length;
+  const todayForms = allLeads.filter(l => l.form_filled&&l.form_filled_at.startsWith(today)).length;
   animateStat(document.getElementById('statTotalLeads'), total.toLocaleString());
   animateStat(document.getElementById('statEmailsSent'), emailed.toLocaleString());
   animateStat(document.getElementById('statFormsFilled'), forms.toLocaleString());
   animateStat(document.getElementById('statReplies'), replies.toLocaleString());
   animateStat(document.getElementById('statInterested'), interested.toLocaleString());
   animateStat(document.getElementById('statClosed'), closed.toLocaleString());
+  animateStat(document.getElementById('statEmailsChange'), '+'+todayEmails+' today');
   animateStat(document.getElementById('statLeadsChange'), '+'+todayLeads+' today');
+  animateStat(document.getElementById('statFormsChange'), '+',todayForms+' today');
   animateStat(document.getElementById('statMRR'), '$'+revenue.toLocaleString()+' MRR');
   document.getElementById('navLeadCount').textContent = total.toLocaleString();
   document.getElementById('navEmailCount').textContent = emailed.toLocaleString();
