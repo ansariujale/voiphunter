@@ -277,33 +277,153 @@
   .pipeline-mini .pm-arrow{color:var(--text-dim);font-size:10px;}
   .cycle-info{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-muted);background:var(--surface2);padding:4px 12px;border-radius:6px;border:1px solid var(--border);margin-top:8px;}
 
-  /* Chat Panel */
-  .chat-fab{position:fixed;bottom:20px;right:20px;width:44px;height:44px;border-radius:10px;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:150;border:none;box-shadow:0 2px 10px rgba(0,0,0,0.3);}
-  .chat-fab:hover{opacity:0.9;}
-  .chat-fab [data-lucide]{width:20px;height:20px;}
-  .chat-fab .unread{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--red);font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;}
-  .chat-panel{position:fixed;top:0;right:-380px;width:380px;height:100vh;background:var(--bg);border-left:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transition:right 0.2s ease;box-shadow:-8px 0 30px rgba(0,0,0,0.4);}
-  .chat-panel.open{right:0;}
-  .chat-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
-  .chat-header h3{font-size:14px;font-weight:600;flex:1;}
-  .chat-header .close-btn{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:4px;}
-  .chat-header .close-btn:hover{background:var(--surface3);color:var(--text);}
-  .chat-messages{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;}
-  .chat-msg{max-width:85%;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.5;word-wrap:break-word;}
-  .chat-msg.agent{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);align-self:flex-start;border-bottom-left-radius:2px;}
-  .chat-msg.user{background:var(--blue);color:white;align-self:flex-end;border-bottom-right-radius:2px;}
-  .chat-msg .msg-time{font-size:10px;opacity:0.5;margin-top:4px;}
-  .chat-typing{display:flex;gap:4px;padding:10px 14px;align-self:flex-start;}
-  .chat-typing .dot{width:5px;height:5px;border-radius:50%;background:var(--text-dim);animation:typingDot 1.4s infinite;}
-  .chat-typing .dot:nth-child(2){animation-delay:0.2s;}
-  .chat-typing .dot:nth-child(3){animation-delay:0.4s;}
+  /* ═══════ AGENT CHAT — Professional Command Center ═══════ */
+  .chat-fab{position:fixed;bottom:24px;right:24px;width:48px;height:48px;border-radius:12px;background:var(--surface2);color:var(--text-muted);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:150;border:1px solid var(--border);box-shadow:0 2px 8px rgba(0,0,0,0.25);transition:all 0.15s ease;}
+  .chat-fab:hover{background:var(--surface3);color:var(--text);border-color:var(--border-light);box-shadow:0 4px 16px rgba(0,0,0,0.35);}
+  .chat-fab svg{width:20px;height:20px;stroke-width:1.8;}
+  .chat-fab .unread{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:8px;background:var(--red);color:white;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:700;padding:0 3px;border:2px solid var(--bg);}
+  .chat-fab.has-unread{animation:fabPulse 2.5s infinite;}
+  @keyframes fabPulse{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,0.25)}50%{box-shadow:0 2px 8px rgba(0,0,0,0.25),0 0 0 4px rgba(255,255,255,0.04)}}
+
+  .chat-panel{position:fixed;top:0;right:0;width:480px;height:100vh;background:var(--bg);border-left:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);box-shadow:none;}
+  .chat-panel.open{transform:translateX(0);box-shadow:-12px 0 40px rgba(0,0,0,0.5);}
+  .chat-panel.expanded{width:720px;}
+  @media(max-width:768px){.chat-panel{width:100%;}}
+  @media(max-width:1200px){.chat-panel.expanded{width:100%;}}
+
+  /* Chat Header */
+  .chat-header{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--surface);flex-shrink:0;}
+  .chat-header-avatar{width:30px;height:30px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .chat-header-avatar svg{width:16px;height:16px;color:var(--text-muted);stroke-width:1.8;}
+  .chat-header-info{flex:1;min-width:0;}
+  .chat-header-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;}
+  .chat-header-title .online-dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;}
+  .chat-header-sub{font-size:11px;color:var(--text-dim);margin-top:1px;}
+  .chat-header-actions{display:flex;gap:2px;}
+  .chat-header-btn{background:none;border:none;color:var(--text-dim);cursor:pointer;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all 0.12s;}
+  .chat-header-btn:hover{background:var(--surface2);color:var(--text);}
+  .chat-header-btn svg{width:15px;height:15px;stroke-width:1.8;}
+
+  /* Messages Area */
+  .chat-messages{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;}
+
+  /* Message Bubbles */
+  .chat-msg{max-width:88%;animation:msgIn 0.2s ease-out;}
+  @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  .chat-msg.agent{align-self:flex-start;display:flex;gap:8px;align-items:flex-start;}
+  .chat-msg.user{align-self:flex-end;}
+  .chat-msg-avatar{width:26px;height:26px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}
+  .chat-msg-avatar svg{width:13px;height:13px;color:var(--text-dim);stroke-width:1.8;}
+  .chat-msg-bubble{padding:10px 14px;border-radius:10px;font-size:13px;line-height:1.6;word-wrap:break-word;position:relative;}
+  .chat-msg.agent .chat-msg-bubble{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);border-top-left-radius:3px;}
+  .chat-msg.user .chat-msg-bubble{background:var(--surface3);border:1px solid var(--border-light);color:var(--text);border-bottom-right-radius:3px;}
+  .chat-msg-meta{font-size:10px;opacity:0.45;margin-top:5px;display:flex;align-items:center;gap:6px;}
+
+  /* Rich message content */
+  .chat-msg-bubble h4{font-size:13px;font-weight:600;color:var(--text);margin:8px 0 4px;padding-bottom:4px;border-bottom:1px solid var(--border);}
+  .chat-msg-bubble h4:first-child{margin-top:0;}
+  .chat-msg-bubble ul,.chat-msg-bubble ol{margin:4px 0;padding-left:16px;}
+  .chat-msg-bubble li{margin:2px 0;}
+  .chat-msg-bubble strong{color:var(--text);font-weight:600;}
+  .chat-msg-bubble code{background:rgba(255,255,255,0.06);padding:1px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:12px;}
+  .chat-msg-bubble a{color:var(--blue);text-decoration:none;}
+  .chat-msg-bubble a:hover{text-decoration:underline;}
+
+  /* Data Cards in Chat */
+  .chat-data-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:8px 0;font-size:12px;}
+  .chat-data-card-title{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;margin-bottom:6px;display:flex;align-items:center;gap:5px;}
+  .chat-data-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.03);}
+  .chat-data-row:last-child{border-bottom:none;}
+  .chat-data-label{color:var(--text-dim);}
+  .chat-data-value{color:var(--text);font-weight:500;font-family:'JetBrains Mono',monospace;}
+  .chat-data-value.green{color:var(--green);}
+  .chat-data-value.red{color:var(--red);}
+  .chat-data-value.orange{color:var(--orange);}
+  .chat-data-value.blue{color:var(--blue);}
+
+  /* Mini Chart in Chat */
+  .chat-mini-chart{height:60px;margin:8px 0;border-radius:6px;overflow:hidden;background:var(--surface);}
+
+  /* Action Buttons in Chat */
+  .chat-actions{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .chat-action-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:5px;font-size:11px;font-weight:450;cursor:pointer;border:1px solid var(--border);background:none;color:var(--text-dim);transition:all 0.1s;}
+  .chat-action-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border-light);}
+  .chat-action-btn.primary{color:var(--text-muted);border-color:var(--border-light);}
+  .chat-action-btn.primary:hover{background:var(--surface2);color:var(--text);}
+  .chat-action-btn.danger{color:var(--red);border-color:var(--border);}
+  .chat-action-btn.success{color:var(--green);border-color:var(--border);}
+  .chat-action-btn svg{width:12px;height:12px;}
+
+  /* Status Indicator in Chat */
+  .chat-status-bar{display:flex;align-items:center;gap:6px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin:6px 0;font-size:11px;color:var(--text-dim);}
+  .chat-status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+  .chat-status-dot.green{background:var(--green);box-shadow:0 0 6px rgba(52,211,153,0.4);}
+  .chat-status-dot.orange{background:var(--orange);}
+  .chat-status-dot.red{background:var(--red);}
+
+  /* Typing Indicator */
+  .chat-typing{display:flex;gap:8px;align-items:flex-start;align-self:flex-start;animation:msgIn 0.2s ease-out;}
+  .chat-typing-avatar{width:26px;height:26px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .chat-typing-avatar svg{width:13px;height:13px;color:var(--text-dim);stroke-width:1.8;}
+  .chat-typing-dots{display:flex;gap:4px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;border-top-left-radius:3px;}
+  .chat-typing-dots .dot{width:5px;height:5px;border-radius:50%;background:var(--text-dim);animation:typingDot 1.4s infinite;}
+  .chat-typing-dots .dot:nth-child(2){animation-delay:0.2s;}
+  .chat-typing-dots .dot:nth-child(3){animation-delay:0.4s;}
   @keyframes typingDot{0%,60%,100%{opacity:0.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}
-  .chat-input-bar{padding:12px 14px;background:var(--surface2);border-top:1px solid var(--border);display:flex;gap:8px;}
-  .chat-input-bar input{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:9px 12px;color:var(--text);font-size:13px;outline:none;}
-  .chat-input-bar input:focus{border-color:var(--blue);}
-  .chat-input-bar button{background:var(--blue);color:white;border:none;border-radius:6px;padding:9px 16px;cursor:pointer;font-weight:500;font-size:13px;}
-  .chat-input-bar button:hover{opacity:0.9;}
-  @media(max-width:768px){.chat-panel{width:100%;right:-100%;}}
+
+  /* Suggested Prompts — linear list */
+  .chat-suggestions{padding:0 16px 10px;flex-shrink:0;border-top:1px solid var(--border);}
+  .chat-suggestions-label{font-size:10px;font-weight:500;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.4px;padding:10px 0 6px;}
+  .chat-suggestions-grid{display:flex;flex-direction:column;gap:1px;}
+  .chat-suggestion{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;font-size:12px;font-weight:450;cursor:pointer;border:none;background:none;color:var(--text-dim);transition:all 0.1s;white-space:nowrap;}
+  .chat-suggestion:hover{background:var(--surface2);color:var(--text);}
+  .chat-suggestion::before{content:'';width:4px;height:4px;border-radius:50%;flex-shrink:0;}
+  .chat-suggestion.cat-leads::before{background:var(--green);}
+  .chat-suggestion.cat-email::before{background:var(--blue);}
+  .chat-suggestion.cat-analyze::before{background:var(--purple);}
+  .chat-suggestion.cat-action::before{background:var(--orange);}
+
+  /* Input Bar */
+  .chat-input-area{padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;}
+  .chat-input-row{display:flex;gap:8px;align-items:flex-end;}
+  .chat-input-wrap{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;transition:border-color 0.15s;overflow:hidden;}
+  .chat-input-wrap:focus-within{border-color:var(--blue);}
+  .chat-input-wrap textarea{width:100%;background:none;border:none;padding:10px 14px;color:var(--text);font-size:13px;font-family:inherit;outline:none;resize:none;line-height:1.5;max-height:120px;min-height:38px;}
+  .chat-input-wrap textarea::placeholder{color:var(--text-dim);}
+  .chat-send-btn{width:38px;height:38px;border-radius:10px;background:var(--surface3);color:var(--text-muted);border:1px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;}
+  .chat-send-btn:hover{background:var(--surface2);color:var(--text);border-color:var(--border-light);}
+  .chat-send-btn:disabled{opacity:0.3;cursor:not-allowed;}
+  .chat-send-btn svg{width:16px;height:16px;stroke-width:2;}
+  .chat-input-hint{font-size:10px;color:var(--text-dim);margin-top:6px;display:flex;align-items:center;gap:12px;}
+  .chat-input-hint kbd{background:var(--surface2);border:1px solid var(--border);padding:1px 4px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:9px;}
+
+  /* Slash Command Popup */
+  .chat-cmd-popup{display:none;position:absolute;bottom:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:4px;box-shadow:0 -8px 30px rgba(0,0,0,0.4);max-height:240px;overflow-y:auto;z-index:10;}
+  .chat-cmd-popup.show{display:block;}
+  .chat-cmd-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;transition:background 0.08s;}
+  .chat-cmd-item:hover,.chat-cmd-item.selected{background:var(--surface2);}
+  .chat-cmd-name{font-size:12px;font-weight:600;color:var(--blue);font-family:'JetBrains Mono',monospace;}
+  .chat-cmd-desc{font-size:11px;color:var(--text-dim);flex:1;}
+  .chat-cmd-category{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;}
+  .chat-cmd-category.leads{background:var(--green-bg);color:var(--green);}
+  .chat-cmd-category.email{background:var(--blue-bg);color:var(--blue);}
+  .chat-cmd-category.action{background:var(--orange-bg);color:var(--orange);}
+  .chat-cmd-category.analyze{background:var(--purple-bg);color:var(--purple);}
+
+  /* Context Banner */
+  .chat-context-banner{display:flex;align-items:center;gap:6px;padding:6px 16px;background:var(--surface);border-bottom:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0;}
+  .chat-context-banner .ctx-tag{background:var(--surface2);border:1px solid var(--border);padding:2px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-muted);}
+  .chat-context-banner .ctx-close{background:none;border:none;color:var(--text-dim);cursor:pointer;margin-left:auto;font-size:14px;padding:0 4px;}
+
+  /* Progress Bar in Messages */
+  .chat-progress{width:100%;background:var(--surface);border-radius:4px;height:6px;margin:6px 0;overflow:hidden;}
+  .chat-progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--purple));transition:width 0.6s ease;}
+
+  /* Table in Chat */
+  .chat-table{width:100%;border-collapse:collapse;margin:8px 0;font-size:11px;}
+  .chat-table th{text-align:left;padding:4px 8px;color:var(--text-dim);font-weight:500;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:0.3px;}
+  .chat-table td{padding:4px 8px;color:var(--text-muted);border-bottom:1px solid rgba(255,255,255,0.03);}
+  .chat-table tr:last-child td{border-bottom:none;}
 
   /* Toast notifications */
   .toast-container{position:fixed;top:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
@@ -972,28 +1092,102 @@ hellorozper.com</textarea>
 </div>
 
 <!-- CHAT FAB -->
-<button class="chat-fab" id="chatFab" onclick="toggleChat()"></button>
+<button class="chat-fab" id="chatFab" onclick="toggleChat()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
 
 <!-- CHAT PANEL -->
 <div class="chat-panel" id="chatPanel">
+  <!-- Header -->
   <div class="chat-header">
-    <h3>Chat with Agent</h3>
-    <button class="close-btn" onclick="toggleChat()">✕</button>
-  </div>
-  <div class="chat-messages" id="chatMessages">
-    <div class="chat-msg agent">
-      Hey! I'm your WholesaleHunter AI agent. I can help you with:<br><br>
-      - Check pipeline status and performance<br>
-      - Analyze which segments are converting<br>
-      - Suggest improvements for low-performing areas<br>
-      - Answer questions about your leads and campaigns<br><br>
-      Just ask me anything!
-      <div class="msg-time">Agent · just now</div>
+    <div class="chat-header-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M17 10v1a5 5 0 0 1-10 0v-1"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>
+    </div>
+    <div class="chat-header-info">
+      <div class="chat-header-title">
+        <span>WholesaleHunter Agent</span>
+        <span class="online-dot" id="chatOnlineDot"></span>
+      </div>
+      <div class="chat-header-sub" id="chatHeaderSub">AI-powered command center</div>
+    </div>
+    <div class="chat-header-actions">
+      <button class="chat-header-btn" onclick="clearChatHistory()" title="Clear chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+      </button>
+      <button class="chat-header-btn" onclick="toggleChatExpand()" title="Expand" id="chatExpandBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+      </button>
+      <button class="chat-header-btn" onclick="toggleChat()" title="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+      </button>
     </div>
   </div>
-  <div class="chat-input-bar">
-    <input type="text" id="chatInput" placeholder="Ask the agent anything..." onkeydown="if(event.key==='Enter')sendChat()">
-    <button onclick="sendChat()">Send</button>
+
+  <!-- Context Banner (shown when viewing specific data) -->
+  <div class="chat-context-banner" id="chatContextBanner" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:12px;height:12px;stroke-width:2;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    <span>Viewing:</span>
+    <span class="ctx-tag" id="chatContextTag"></span>
+    <button class="ctx-close" onclick="clearChatContext()">&times;</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="chat-messages" id="chatMessages">
+    <!-- Welcome Message -->
+    <div class="chat-msg agent">
+      <div class="chat-msg-avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M17 10v1a5 5 0 0 1-10 0v-1"/></svg>
+      </div>
+      <div class="chat-msg-bubble">
+        <strong>Welcome to your Command Center.</strong> I have full access to your pipeline, leads, email campaigns, and analytics. Here's what I can do:
+
+        <div class="chat-data-card" style="margin-top:10px;">
+          <div class="chat-data-card-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:12px;height:12px;stroke-width:2;"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            CAPABILITIES
+          </div>
+          <div class="chat-data-row"><span class="chat-data-label">Pipeline Control</span><span class="chat-data-value green">Start, stop, run steps</span></div>
+          <div class="chat-data-row"><span class="chat-data-label">Lead Intelligence</span><span class="chat-data-value blue">Find, analyze, score leads</span></div>
+          <div class="chat-data-row"><span class="chat-data-label">Email Analytics</span><span class="chat-data-value">Open/reply rates, domain health</span></div>
+          <div class="chat-data-row"><span class="chat-data-label">Diagnostics</span><span class="chat-data-value">Why reply rates are low, what to fix</span></div>
+          <div class="chat-data-row"><span class="chat-data-label">Actions</span><span class="chat-data-value orange">Pause countries, rotate domains</span></div>
+        </div>
+
+        <div class="chat-msg-meta">Agent &middot; just now</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Suggested Prompts -->
+  <div class="chat-suggestions" id="chatSuggestions">
+    <div class="chat-suggestions-label">Quick Actions</div>
+    <div class="chat-suggestions-grid">
+      <div class="chat-suggestion cat-analyze" onclick="useSuggestion('Give me a full project status report')">Project status</div>
+      <div class="chat-suggestion cat-email" onclick="useSuggestion('Why are my reply rates low? Analyze and give me actionable fixes')">Why low replies?</div>
+      <div class="chat-suggestion cat-leads" onclick="useSuggestion('Show me the top performing segments by close rate')">Top segments</div>
+      <div class="chat-suggestion cat-action" onclick="useSuggestion('Which countries should I pause and why?')">Pause advice</div>
+      <div class="chat-suggestion cat-leads" onclick="useSuggestion('Get me new leads — find VoIP providers in UAE and UK')">Find leads</div>
+      <div class="chat-suggestion cat-email" onclick="useSuggestion('Show email domain health and which domains need rotation')">Domain health</div>
+      <div class="chat-suggestion cat-analyze" onclick="useSuggestion('What is my conversion funnel? Show leads to close breakdown')">Funnel analysis</div>
+      <div class="chat-suggestion cat-action" onclick="useSuggestion('Start the agent and run a full pipeline cycle')">Start agent</div>
+    </div>
+  </div>
+
+  <!-- Input Area -->
+  <div class="chat-input-area" style="position:relative;">
+    <div class="chat-cmd-popup" id="chatCmdPopup"></div>
+    <div class="chat-input-row">
+      <div class="chat-input-wrap">
+        <textarea id="chatInput" rows="1" placeholder="Ask anything or type / for commands..." onkeydown="handleChatKeydown(event)" oninput="handleChatInput(event)"></textarea>
+      </div>
+      <button class="chat-send-btn" id="chatSendBtn" onclick="sendChat()" disabled>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>
+      </button>
+    </div>
+    <div class="chat-input-hint">
+      <span><kbd>Enter</kbd> send &middot; <kbd>Shift+Enter</kbd> new line</span>
+      <span><kbd>/</kbd> commands</span>
+    </div>
   </div>
 </div>
 
@@ -2556,57 +2750,348 @@ function demoAgentLoop(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CHAT WITH AGENT
+// AGENT CHAT — PROFESSIONAL COMMAND CENTER
 // ═══════════════════════════════════════════════════════════════
 let chatOpen = false;
+let chatExpanded = false;
+let chatSending = false;
+let chatContext = null;
+let cmdPopupIdx = -1;
+
+// Slash commands
+const CHAT_COMMANDS = [
+  {cmd:'/status',     desc:'Full project status report',           cat:'analyze'},
+  {cmd:'/leads',      desc:'Lead counts by country and type',      cat:'leads'},
+  {cmd:'/hotleads',   desc:'Show leads that replied or interested', cat:'leads'},
+  {cmd:'/findleads',  desc:'Scrape new leads from sources',        cat:'leads', action:true},
+  {cmd:'/email',      desc:'Email campaign stats and open rates',  cat:'email'},
+  {cmd:'/domains',    desc:'Sending domain health report',         cat:'email'},
+  {cmd:'/replies',    desc:'Why are reply rates low? Diagnose',    cat:'analyze'},
+  {cmd:'/funnel',     desc:'Conversion funnel breakdown',          cat:'analyze'},
+  {cmd:'/segments',   desc:'Segment performance analysis',         cat:'analyze'},
+  {cmd:'/start',      desc:'Start the agent pipeline',             cat:'action', action:true},
+  {cmd:'/stop',       desc:'Stop the running agent',               cat:'action', action:true},
+  {cmd:'/pause',      desc:'Pause a country or segment',           cat:'action', action:true},
+  {cmd:'/run',        desc:'Run a single pipeline step',           cat:'action', action:true},
+  {cmd:'/errors',     desc:'Show recent errors and issues',        cat:'analyze'},
+  {cmd:'/sources',    desc:'Source tracker performance',           cat:'leads'},
+  {cmd:'/warmup',     desc:'Email warmup status per domain',       cat:'email'},
+  {cmd:'/report',     desc:'Generate weekly intelligence report',  cat:'analyze'},
+  {cmd:'/export',     desc:'Export leads to CSV',                  cat:'action', action:true},
+  {cmd:'/help',       desc:'Show all available commands',          cat:'analyze'},
+];
 
 function toggleChat(){
   chatOpen = !chatOpen;
-  document.getElementById('chatPanel').classList.toggle('open', chatOpen);
-  if(chatOpen) document.getElementById('chatInput').focus();
+  const panel = document.getElementById('chatPanel');
+  panel.classList.toggle('open', chatOpen);
+  if(chatOpen){
+    const ta = document.getElementById('chatInput');
+    setTimeout(()=>ta.focus(), 200);
+    document.getElementById('chatFab').classList.remove('has-unread');
+    const badge = document.querySelector('.chat-fab .unread');
+    if(badge) badge.remove();
+  }
 }
 
+function toggleChatExpand(){
+  chatExpanded = !chatExpanded;
+  document.getElementById('chatPanel').classList.toggle('expanded', chatExpanded);
+}
+
+function clearChatHistory(){
+  const msgs = document.getElementById('chatMessages');
+  msgs.innerHTML = '';
+  appendAgentWelcome();
+  document.getElementById('chatSuggestions').style.display = '';
+}
+
+function clearChatContext(){
+  chatContext = null;
+  document.getElementById('chatContextBanner').style.display = 'none';
+}
+
+function setChatContext(label){
+  chatContext = label;
+  document.getElementById('chatContextTag').textContent = label;
+  document.getElementById('chatContextBanner').style.display = '';
+}
+
+// Auto-resize textarea
+function autoResizeTextarea(ta){
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(ta.scrollHeight, 120) + 'px';
+}
+
+function handleChatInput(e){
+  const ta = e.target;
+  autoResizeTextarea(ta);
+  document.getElementById('chatSendBtn').disabled = !ta.value.trim();
+  // Slash command popup
+  const val = ta.value;
+  if(val.startsWith('/')){
+    showCmdPopup(val);
+  } else {
+    hideCmdPopup();
+  }
+}
+
+function handleChatKeydown(e){
+  const popup = document.getElementById('chatCmdPopup');
+  if(popup.classList.contains('show')){
+    const items = popup.querySelectorAll('.chat-cmd-item');
+    if(e.key === 'ArrowDown'){e.preventDefault(); cmdPopupIdx = Math.min(cmdPopupIdx+1, items.length-1); highlightCmd(items);}
+    else if(e.key === 'ArrowUp'){e.preventDefault(); cmdPopupIdx = Math.max(cmdPopupIdx-1, 0); highlightCmd(items);}
+    else if(e.key === 'Tab' || (e.key === 'Enter' && cmdPopupIdx >= 0)){
+      e.preventDefault();
+      if(items[cmdPopupIdx]){
+        const cmd = items[cmdPopupIdx].dataset.cmd;
+        document.getElementById('chatInput').value = cmd + ' ';
+        hideCmdPopup();
+        autoResizeTextarea(document.getElementById('chatInput'));
+        document.getElementById('chatSendBtn').disabled = false;
+      }
+      return;
+    } else if(e.key === 'Escape'){hideCmdPopup(); return;}
+  }
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    sendChat();
+  }
+}
+
+function showCmdPopup(val){
+  const filter = val.toLowerCase();
+  const matches = CHAT_COMMANDS.filter(c => c.cmd.startsWith(filter) || (filter === '/'));
+  const popup = document.getElementById('chatCmdPopup');
+  if(!matches.length){hideCmdPopup(); return;}
+  popup.innerHTML = matches.map((c,i)=>`
+    <div class="chat-cmd-item${i===0?' selected':''}" data-cmd="${c.cmd}" onclick="selectCmd('${c.cmd}')">
+      <span class="chat-cmd-name">${c.cmd}</span>
+      <span class="chat-cmd-desc">${c.desc}</span>
+      <span class="chat-cmd-category ${c.cat}">${c.cat}</span>
+    </div>
+  `).join('');
+  popup.classList.add('show');
+  cmdPopupIdx = 0;
+}
+
+function hideCmdPopup(){
+  document.getElementById('chatCmdPopup').classList.remove('show');
+  cmdPopupIdx = -1;
+}
+
+function highlightCmd(items){
+  items.forEach((el,i)=>el.classList.toggle('selected', i===cmdPopupIdx));
+}
+
+function selectCmd(cmd){
+  document.getElementById('chatInput').value = cmd + ' ';
+  hideCmdPopup();
+  document.getElementById('chatInput').focus();
+  document.getElementById('chatSendBtn').disabled = false;
+}
+
+function useSuggestion(text){
+  document.getElementById('chatInput').value = text;
+  autoResizeTextarea(document.getElementById('chatInput'));
+  document.getElementById('chatSendBtn').disabled = false;
+  sendChat();
+}
+
+// ── Send Chat ──
 async function sendChat(){
-  const input = document.getElementById('chatInput');
-  const msg = input.value.trim();
-  if(!msg) return;
-  input.value = '';
+  const ta = document.getElementById('chatInput');
+  const msg = ta.value.trim();
+  if(!msg || chatSending) return;
+  ta.value = '';
+  ta.style.height = 'auto';
+  document.getElementById('chatSendBtn').disabled = true;
+  hideCmdPopup();
+  chatSending = true;
 
-  // Add user message
-  appendChatMsg(msg, 'user');
+  // Hide suggestions after first send
+  document.getElementById('chatSuggestions').style.display = 'none';
 
-  // Show typing indicator
-  const typing = document.createElement('div');
-  typing.className = 'chat-typing';
-  typing.id = 'typingIndicator';
-  typing.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-  document.getElementById('chatMessages').appendChild(typing);
-  scrollChat();
+  // Check for action commands
+  const actionResult = await handleLocalAction(msg);
+  if(actionResult){
+    appendUserMsg(msg);
+    appendAgentMsg(actionResult);
+    chatSending = false;
+    return;
+  }
 
-  // Send to server
+  appendUserMsg(msg);
+  showTypingIndicator();
+
   let reply;
   if(serverConnected){
-    const data = await api('/api/chat', 'POST', {message: msg});
-    reply = data && data.reply ? data.reply : "I'm having trouble connecting to the AI. Make sure your Anthropic API key is set in .env";
+    try {
+      const data = await api('/api/chat', 'POST', {message: msg});
+      reply = data && data.reply ? data.reply : "I'm having trouble connecting to the AI. Check your Anthropic API key in .env";
+    } catch(err){
+      reply = "Connection error. Make sure the server is running.";
+    }
   } else {
-    // Demo fallback
-    await new Promise(r=>setTimeout(r, 1000+Math.random()*1500));
+    await new Promise(r=>setTimeout(r, 800+Math.random()*1200));
     reply = getDemoChatReply(msg);
   }
 
-  // Remove typing indicator and add reply
-  const ti = document.getElementById('typingIndicator');
-  if(ti) ti.remove();
-  appendChatMsg(reply, 'agent');
+  removeTypingIndicator();
+  appendAgentMsg(reply);
+  chatSending = false;
 }
 
-function appendChatMsg(text, role){
+// ── Handle local actions (commands that trigger API calls) ──
+async function handleLocalAction(msg){
+  const lower = msg.toLowerCase().trim();
+
+  if(lower === '/start' || lower === '/start agent'){
+    try{
+      await api('/api/start-agent', 'POST');
+      return formatActionResult('Agent Started', 'The pipeline agent is now running in continuous mode. It will scrape leads, qualify, send emails, fill forms, and follow up every hour.', 'success');
+    }catch(e){ return formatActionResult('Error', 'Failed to start agent: ' + e.message, 'error'); }
+  }
+
+  if(lower === '/stop' || lower === '/stop agent'){
+    try{
+      await api('/api/stop', 'POST');
+      return formatActionResult('Agent Stopped', 'All workers have been stopped gracefully.', 'warning');
+    }catch(e){ return formatActionResult('Error', 'Failed to stop: ' + e.message, 'error'); }
+  }
+
+  if(lower.startsWith('/run ')){
+    const step = lower.replace('/run ','').trim();
+    const validSteps = ['scrape','qualify','email','forms','followup','report'];
+    if(validSteps.includes(step)){
+      try{
+        await api('/api/run-step', 'POST', {step});
+        return formatActionResult('Running Step', `Executing "${step}" pipeline step now...`, 'info');
+      }catch(e){ return formatActionResult('Error', 'Failed to run step: ' + e.message, 'error'); }
+    }
+  }
+
+  if(lower === '/export'){
+    try{
+      const data = await api('/api/export-csv', 'POST');
+      return formatActionResult('Export Ready', `Exported ${data?.count || 'all'} leads. Check your downloads.`, 'success');
+    }catch(e){ return formatActionResult('Error', 'Export failed: ' + e.message, 'error'); }
+  }
+
+  if(lower === '/help'){
+    return formatHelpMessage();
+  }
+
+  return null; // Not a local action, send to AI
+}
+
+function formatActionResult(title, message, type){
+  const colors = {success:'green', error:'red', warning:'orange', info:'blue'};
+  const color = colors[type] || 'blue';
+  return `<div class="chat-status-bar"><div class="chat-status-dot ${color}"></div><strong>${title}</strong></div>${message}`;
+}
+
+function formatHelpMessage(){
+  let html = '<strong>Available Commands</strong>\n\n';
+  const cats = {analyze:'Analysis', leads:'Leads', email:'Email', action:'Actions'};
+  for(const cat of ['analyze','leads','email','action']){
+    html += `<h4>${cats[cat]}</h4><table class="chat-table"><tbody>`;
+    CHAT_COMMANDS.filter(c=>c.cat===cat).forEach(c=>{
+      html += `<tr><td><code>${c.cmd}</code></td><td>${c.desc}</td></tr>`;
+    });
+    html += '</tbody></table>';
+  }
+  html += '\n\nYou can also ask me anything in plain English — I have full access to your database and pipeline state.';
+  return html;
+}
+
+// ── Message Rendering ──
+function appendUserMsg(text){
   const el = document.createElement('div');
-  el.className = 'chat-msg ' + role;
+  el.className = 'chat-msg user';
   const time = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-  el.innerHTML = text.replace(/\n/g,'<br>') + '<div class="msg-time">'+(role==='agent'?'Agent':'You')+' · '+time+'</div>';
+  el.innerHTML = `<div class="chat-msg-bubble">${escapeHtml(text)}<div class="chat-msg-meta">You &middot; ${time}</div></div>`;
   document.getElementById('chatMessages').appendChild(el);
   scrollChat();
+}
+
+function appendAgentMsg(text){
+  const el = document.createElement('div');
+  el.className = 'chat-msg agent';
+  const time = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  el.innerHTML = `
+    <div class="chat-msg-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M17 10v1a5 5 0 0 1-10 0v-1"/></svg>
+    </div>
+    <div class="chat-msg-bubble">${formatAgentReply(text)}<div class="chat-msg-meta">Agent &middot; ${time}</div></div>`;
+  document.getElementById('chatMessages').appendChild(el);
+  scrollChat();
+}
+
+function appendAgentWelcome(){
+  const el = document.createElement('div');
+  el.className = 'chat-msg agent';
+  el.innerHTML = `
+    <div class="chat-msg-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M17 10v1a5 5 0 0 1-10 0v-1"/></svg>
+    </div>
+    <div class="chat-msg-bubble">
+      <strong>Chat cleared.</strong> I'm ready for new questions. Type <code>/help</code> for commands or ask me anything.
+      <div class="chat-msg-meta">Agent &middot; ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`;
+  document.getElementById('chatMessages').appendChild(el);
+}
+
+function formatAgentReply(text){
+  if(!text) return '';
+  // If already contains HTML tags (from action results), return as-is
+  if(text.includes('<div class="chat-') || text.includes('<table') || text.includes('<h4')){
+    return text.replace(/\n/g,'<br>');
+  }
+  // Convert markdown-like formatting
+  let html = escapeHtml(text);
+  // Bold **text**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Bullet points
+  html = html.replace(/^[•·]\s*(.+)$/gm, '<li>$1</li>');
+  html = html.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+  // Numbered lists
+  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+  // Headers with ── or === or ###
+  html = html.replace(/^#{1,3}\s*(.+)$/gm, '<h4>$1</h4>');
+  // Code blocks
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Newlines
+  html = html.replace(/\n/g,'<br>');
+  // Clean up double <br> after list items
+  html = html.replace(/<\/li><br>/g,'</li>');
+  html = html.replace(/<\/ul><br>/g,'</ul>');
+  return html;
+}
+
+function escapeHtml(text){
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function showTypingIndicator(){
+  const el = document.createElement('div');
+  el.className = 'chat-typing';
+  el.id = 'typingIndicator';
+  el.innerHTML = `
+    <div class="chat-typing-avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 2a5 5 0 0 1 5 5v3a5 5 0 0 1-10 0V7a5 5 0 0 1 5-5z"/><path d="M17 10v1a5 5 0 0 1-10 0v-1"/></svg>
+    </div>
+    <div class="chat-typing-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>`;
+  document.getElementById('chatMessages').appendChild(el);
+  scrollChat();
+}
+
+function removeTypingIndicator(){
+  const ti = document.getElementById('typingIndicator');
+  if(ti) ti.remove();
 }
 
 function scrollChat(){
@@ -2614,21 +3099,181 @@ function scrollChat(){
   el.scrollTop = el.scrollHeight;
 }
 
+// ── Demo Mode Replies (enriched with data cards) ──
 function getDemoChatReply(msg){
   const lower = msg.toLowerCase();
-  if(lower.includes('status') || lower.includes('how') && lower.includes('going')){
-    return "Here's your current status:\\n\\n• Total leads: "+document.getElementById('statTotalLeads').textContent+"\\n• Emails sent: "+document.getElementById('statEmailsSent').textContent+"\\n• Forms filled: "+document.getElementById('statFormsFilled').textContent+"\\n• Replies: "+document.getElementById('statReplies').textContent+"\\n• Closed deals: "+document.getElementById('statClosed').textContent+"\\n\\nThe agent is "+(agentRunning?"running continuously":"currently idle")+".";
+  const leads = document.getElementById('statTotalLeads')?.textContent || '0';
+  const emails = document.getElementById('statEmailsSent')?.textContent || '0';
+  const forms = document.getElementById('statFormsFilled')?.textContent || '0';
+  const replies = document.getElementById('statReplies')?.textContent || '0';
+  const closed = document.getElementById('statClosed')?.textContent || '0';
+  const running = agentRunning;
+
+  if(lower.includes('status') || lower.includes('report') || lower.includes('how') && lower.includes('going') || lower === '/status'){
+    return `<div class="chat-status-bar"><div class="chat-status-dot ${running?'green':'orange'}"></div><strong>Agent ${running?'Running':'Idle'}</strong></div>
+
+<div class="chat-data-card">
+<div class="chat-data-card-title">PIPELINE STATUS</div>
+<div class="chat-data-row"><span class="chat-data-label">Total Leads</span><span class="chat-data-value">${leads}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Emails Sent</span><span class="chat-data-value blue">${emails}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Forms Filled</span><span class="chat-data-value">${forms}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Replies</span><span class="chat-data-value green">${replies}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Closed Deals</span><span class="chat-data-value green">${closed}</span></div>
+</div>
+
+The pipeline is ${running ? 'actively processing leads through all stages' : 'currently idle — start it to begin outreach'}. ${parseInt(replies) > 0 ? 'You have active replies to follow up on.' : 'No replies yet — check domain health and email content.'}`;
   }
-  if(lower.includes('sales') && (lower.includes('low') || lower.includes('improve'))){
-    return "I'd suggest a few things to improve sales:\\n\\n1. Check the Intelligence tab — see which countries and lead types have the best close rates\\n2. Pause underperforming segments (like countries with 0 closes after 200+ leads)\\n3. Try focusing on VoIP Providers and UCaaS — they tend to convert best\\n4. Make sure your follow-up sequence is running (4 emails over 14 days)\\n\\nWant me to analyze a specific segment?";
+
+  if(lower.includes('reply') && (lower.includes('low') || lower.includes('why') || lower.includes('improve')) || lower === '/replies'){
+    return `<strong>Reply Rate Diagnosis</strong>
+
+Here are the most common reasons for low reply rates and fixes:
+
+<div class="chat-data-card">
+<div class="chat-data-card-title">DIAGNOSIS</div>
+<div class="chat-data-row"><span class="chat-data-label">Domain Health</span><span class="chat-data-value orange">Check open rates per domain</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Email Content</span><span class="chat-data-value">Personalization score matters</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Lead Quality</span><span class="chat-data-value">Score threshold at 40+</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Follow-ups</span><span class="chat-data-value blue">Most replies come from email #2-3</span></div>
+</div>
+
+**Key Actions:**
+1. Rotate any sending domain below 10% open rate
+2. Pause countries with 0 closes after 200+ leads
+3. Ensure follow-up sequence is active (4 emails over 14 days)
+4. Focus on VoIP Providers and UCaaS — best conversion
+5. Use dual-channel (email + form) for 2x reply rate
+
+<div class="chat-actions">
+<div class="chat-action-btn primary" onclick="useSuggestion('Show email domain health and which domains need rotation')">Check Domain Health</div>
+<div class="chat-action-btn" onclick="useSuggestion('Which countries should I pause and why?')">Pause Advice</div>
+</div>`;
   }
-  if(lower.includes('lead') && (lower.includes('best') || lower.includes('top'))){
-    return "Based on the data, your best-performing segments are:\\n\\n• UAE & UK have the highest close rates\\n• VoIP Providers respond best to cold outreach\\n• Apollo leads tend to have better email quality\\n• The 'Both Email+Form' channel has a 2x higher reply rate\\n\\nI'd recommend doubling down on these.";
+
+  if(lower.includes('segment') || lower.includes('top') && lower.includes('perform') || lower === '/segments'){
+    return `<strong>Segment Performance</strong>
+
+<div class="chat-data-card">
+<div class="chat-data-card-title">TOP SEGMENTS BY CLOSE RATE</div>
+<div class="chat-data-row"><span class="chat-data-label">UAE — VoIP Provider</span><span class="chat-data-value green">Best performer</span></div>
+<div class="chat-data-row"><span class="chat-data-label">UK — UCaaS</span><span class="chat-data-value green">High response</span></div>
+<div class="chat-data-row"><span class="chat-data-label">US — Call Center</span><span class="chat-data-value">Moderate</span></div>
+<div class="chat-data-row"><span class="chat-data-label">India — Reseller</span><span class="chat-data-value red">Low — consider pause</span></div>
+</div>
+
+**Recommendations:** Double down on UAE and UK VoIP segments. Apollo leads have better email quality. Consider pausing segments with <0.5% close rate after 500+ leads.
+
+<div class="chat-actions">
+<div class="chat-action-btn primary" onclick="showPage('intelligence')">View Intelligence</div>
+<div class="chat-action-btn" onclick="useSuggestion('Which countries should I pause and why?')">Pause Advice</div>
+</div>`;
   }
+
+  if(lower.includes('lead') && (lower.includes('find') || lower.includes('get') || lower.includes('new') || lower.includes('scrape')) || lower.startsWith('/findleads')){
+    return `<strong>Lead Generation</strong>
+
+To find new leads, the agent scrapes from multiple sources:
+
+<div class="chat-data-card">
+<div class="chat-data-card-title">LEAD SOURCES</div>
+<div class="chat-data-row"><span class="chat-data-label">Google Maps (Apify)</span><span class="chat-data-value green">Primary source</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Apollo.io</span><span class="chat-data-value blue">Best email quality</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Google Search</span><span class="chat-data-value">Directory scraping</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Daily Target</span><span class="chat-data-value">1,000 leads/day</span></div>
+</div>
+
+<div class="chat-actions">
+<div class="chat-action-btn success" onclick="handleLocalAction('/run scrape').then(r=>appendAgentMsg(r))">Run Scraper Now</div>
+<div class="chat-action-btn primary" onclick="handleLocalAction('/start').then(r=>appendAgentMsg(r))">Start Full Pipeline</div>
+</div>`;
+  }
+
+  if(lower.includes('domain') || lower.includes('warmup') || lower === '/domains' || lower === '/warmup'){
+    return `<strong>Email Domain Health</strong>
+
+<div class="chat-data-card">
+<div class="chat-data-card-title">SENDING DOMAINS</div>
+<div class="chat-data-row"><span class="chat-data-label">getrozper.com</span><span class="chat-data-value green">Active</span></div>
+<div class="chat-data-row"><span class="chat-data-label">rozper.io</span><span class="chat-data-value green">Active</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Total Mailboxes</span><span class="chat-data-value">16</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Daily Capacity</span><span class="chat-data-value blue">~1,040 emails</span></div>
+</div>
+
+**Rules:** Domains below 10% open rate should be rotated automatically. The warmup schedule ramps from day 1-21 then goes full speed.
+
+<div class="chat-actions">
+<div class="chat-action-btn primary" onclick="showPage('email')">View Email Dashboard</div>
+</div>`;
+  }
+
+  if(lower.includes('funnel') || lower.includes('conversion') || lower === '/funnel'){
+    return `<strong>Conversion Funnel</strong>
+
+<div class="chat-data-card">
+<div class="chat-data-card-title">PIPELINE FUNNEL</div>
+<div class="chat-data-row"><span class="chat-data-label">Leads Found</span><span class="chat-data-value">${leads}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Qualified (40+)</span><span class="chat-data-value blue">~${Math.round(parseInt(leads.replace(/,/g,''))*0.65)||0}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Contacted</span><span class="chat-data-value">${emails}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Replied</span><span class="chat-data-value green">${replies}</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Closed</span><span class="chat-data-value green">${closed}</span></div>
+</div>
+
+<div class="chat-actions">
+<div class="chat-action-btn" onclick="showPage('funnel')">View Funnel Chart</div>
+</div>`;
+  }
+
+  if(lower.includes('pause') || lower.includes('which countr')){
+    return `<strong>Pause Recommendations</strong>
+
+The auto-optimization module pauses segments that aren't converting:
+
+**Rules Applied:**
+- Countries with **0 closes after 200+ leads** → auto-pause
+- Lead types with **<0.5% close rate after 500+ leads** → deprioritize
+- Sources with **<1% reply rate after 1,000+ sends** → reduce volume
+
+Check the Intelligence tab for real-time segment data. In live mode, I'll tell you exactly which countries to pause based on your actual data.
+
+<div class="chat-actions">
+<div class="chat-action-btn primary" onclick="showPage('intelligence')">View Intelligence</div>
+</div>`;
+  }
+
   if(lower.includes('start') || lower.includes('run')){
-    return "You can start the agent using the big green START AGENT button at the top of the dashboard. It will run continuously — scraping leads, qualifying them, sending emails, filling forms, and sending follow-ups — in a loop every hour.";
+    if(running) return `<div class="chat-status-bar"><div class="chat-status-dot green"></div><strong>Already Running</strong></div>The agent is already active. It's processing leads through all pipeline stages in a continuous loop every hour.`;
+    return `<div class="chat-actions" style="margin:0;">
+<div class="chat-action-btn success" onclick="handleLocalAction('/start').then(r=>{appendAgentMsg(r)})">Start Agent Now</div>
+</div>
+
+This will begin the continuous pipeline: **Scrape → Qualify → Email → Forms → Follow-up → Report** every hour.`;
   }
-  return "I understand! Right now I'm in demo mode so my responses are limited. Once the server is running with your Anthropic API key, I'll use Claude AI to give you real-time analysis, answer any question about your pipeline, and help optimize your outreach strategy.\\n\\nTry asking me about:\\n• Pipeline status\\n• Sales improvement tips\\n• Best performing leads\\n• How to start the agent";
+
+  if(lower.includes('error') || lower === '/errors'){
+    return `<strong>Error Log</strong>
+
+No critical errors detected in demo mode. Once connected to the live server, I'll show you:
+- Recent pipeline errors with timestamps
+- Failed email sends and bounce reasons
+- Form submission failures
+- API connection issues
+
+<div class="chat-actions">
+<div class="chat-action-btn" onclick="showPage('pipeline')">View Pipeline Logs</div>
+</div>`;
+  }
+
+  return `I have full access to your pipeline data and can help with:
+
+<div class="chat-data-card">
+<div class="chat-data-card-title">TRY ASKING</div>
+<div class="chat-data-row"><span class="chat-data-label">Analysis</span><span class="chat-data-value">"Why are reply rates low?"</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Leads</span><span class="chat-data-value">"Find VoIP providers in UAE"</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Status</span><span class="chat-data-value">"Full project status report"</span></div>
+<div class="chat-data-row"><span class="chat-data-label">Actions</span><span class="chat-data-value">"Start agent" or /start</span></div>
+</div>
+
+Type <code>/help</code> to see all slash commands, or just ask me anything in plain English. ${serverConnected ? "I'm connected to Claude AI for real-time analysis." : "Connect to the server with your API key for AI-powered insights."}`;
 }
 
 // ═══════════════════════════════════════════════════════════════

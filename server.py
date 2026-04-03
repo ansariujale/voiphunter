@@ -402,42 +402,59 @@ def _get_db_context() -> str:
 
 
 def handle_chat(user_message: str) -> str:
-    """Process a user chat message and return an AI response."""
+    """Process a user chat message and return an AI response with rich data."""
 
     stats = agent_state["stats"]
-    recent_logs = agent_state["log"][:10]
+    recent_logs = agent_state["log"][:15]
     log_text = "\n".join(f"[{l['time']}] {l['msg']}" for l in recent_logs)
 
     # Get comprehensive DB data
     db_context = _get_db_context()
 
-    context = f"""You are the WholesaleHunter v2 AI agent for Rozper, a wholesale VoIP carrier.
-You have FULL access to the database and system state. Answer with specific data and numbers.
-You can recommend actions: start/stop agent, pause countries, change targets, send emails, etc.
-Be direct and data-driven. Use the database info below to answer accurately.
+    # Get additional computed metrics for deeper analysis
+    extra_context = _get_deep_analytics()
+
+    context = f"""You are the WholesaleHunter v2 AI command center for Rozper, a wholesale VoIP carrier.
+You are a senior sales operations analyst with FULL access to the database, pipeline, and system state.
+
+YOUR ROLE:
+- Answer ANY question about the project with exact data and numbers
+- Diagnose problems (low reply rates, poor conversion, domain issues) with root cause analysis
+- Recommend specific, actionable improvements with expected impact
+- Provide strategic insights on lead quality, segment performance, and outreach optimization
+- Help the user understand what's working, what isn't, and why
 
 AGENT STATE:
 - Status: {agent_state['status']} | Running: {agent_state['agent_loop_running']} | Step: {agent_state['current_step'] or 'none'}
 - Cycle: {agent_state['cycle']} | Last run: {agent_state['last_run'] or 'never'}
 - Session stats: scraped={stats['leads_scraped']}, qualified={stats['leads_qualified']}, emails={stats['emails_sent']}, forms={stats['forms_filled']}, followups={stats['followups_sent']}
 
-DATABASE:
+DATABASE OVERVIEW:
 {db_context}
 
-RECENT LOG:
+DEEP ANALYTICS:
+{extra_context}
+
+RECENT ACTIVITY LOG:
 {log_text}
 
-ERRORS: {json.dumps(agent_state['errors'][-3:], default=str) if agent_state['errors'] else 'None'}
+ERRORS: {json.dumps(agent_state['errors'][-5:], default=str) if agent_state['errors'] else 'None'}
 
-RULES:
-- Always cite exact numbers from the database
-- If asked about countries, leads, sources, emails — use the data above
-- If asked to take action (pause country, start agent, send emails) — explain what you'd do and recommend the user confirm
-- Keep responses concise (2-4 paragraphs), use bullet points for data
-- If data is missing, say so honestly"""
+RESPONSE FORMATTING RULES:
+- Always cite **exact numbers** from the database — never guess
+- Use **bold** for key metrics and action items
+- Use bullet points (•) for lists of data
+- Structure longer answers with clear sections
+- When diagnosing problems, always provide: 1) Current metric 2) What's wrong 3) Why 4) Fix
+- When asked "why" something is low/bad, give a specific root cause analysis with data
+- For action recommendations, be specific: "Pause India (0 closes from 234 leads)" not "consider pausing underperformers"
+- If the user asks about leads, reply rates, or performance — pull actual numbers and compare segments
+- Keep responses focused and data-driven (3-5 paragraphs max)
+- If data is missing or zero, say so honestly and explain what that means
+- When recommending actions, explain the expected impact"""
 
     messages = []
-    for entry in agent_state["chat_history"][-6:]:
+    for entry in agent_state["chat_history"][-8:]:
         messages.append({"role": entry["role"], "content": entry["content"]})
     messages.append({"role": "user", "content": user_message})
 
@@ -450,15 +467,15 @@ RULES:
         full_prompt = "\n".join(
             [f"{'User' if m['role']=='user' else 'Assistant'}: {m['content']}" for m in messages]
         )
-        reply = ai_generate(full_prompt, max_tokens=800, system=context)
+        reply = ai_generate(full_prompt, max_tokens=1200, system=context)
         if not reply:
             return _fallback_chat(user_message)
 
         # Save to history
         agent_state["chat_history"].append({"role": "user", "content": user_message})
         agent_state["chat_history"].append({"role": "assistant", "content": reply})
-        if len(agent_state["chat_history"]) > 30:
-            agent_state["chat_history"] = agent_state["chat_history"][-20:]
+        if len(agent_state["chat_history"]) > 40:
+            agent_state["chat_history"] = agent_state["chat_history"][-24:]
 
         return reply
 
@@ -467,46 +484,212 @@ RULES:
         return _fallback_chat(user_message)
 
 
+def _get_deep_analytics() -> str:
+    """Compute deeper analytics for AI context — reply rates, conversion, diagnostics."""
+    lines = []
+    try:
+        from config import get_db
+        db = get_db()
+        if not db:
+            return "Deep analytics unavailable — no DB connection"
+
+        # Overall funnel metrics
+        try:
+            total = db.select("leads", columns="id", limit=1, count="exact")
+            total_count = total[0].get("count", 0) if total else 0
+
+            emailed = db.select("leads", columns="id", filters={"email_sent": "eq.true"}, limit=1, count="exact")
+            emailed_count = emailed[0].get("count", 0) if emailed else 0
+
+            replied_leads = db.select("leads", columns="id", filters={"replied": "eq.true"}, limit=1, count="exact")
+            replied_count = replied_leads[0].get("count", 0) if replied_leads else 0
+
+            closed_leads = db.select("leads", columns="id", filters={"closed": "eq.true"}, limit=1, count="exact")
+            closed_count = closed_leads[0].get("count", 0) if closed_leads else 0
+
+            reply_rate = round(replied_count / emailed_count * 100, 2) if emailed_count > 0 else 0
+            close_rate = round(closed_count / emailed_count * 100, 2) if emailed_count > 0 else 0
+
+            lines.append(f"FUNNEL: {total_count} total leads → {emailed_count} emailed → {replied_count} replied ({reply_rate}%) → {closed_count} closed ({close_rate}%)")
+        except:
+            pass
+
+        # Reply rate by country
+        try:
+            all_leads = db.select("leads", columns="country,email_sent,replied,closed,score", limit=5000)
+            if all_leads:
+                country_stats = {}
+                for l in all_leads:
+                    c = l.get("country", "Unknown")
+                    if c not in country_stats:
+                        country_stats[c] = {"total": 0, "emailed": 0, "replied": 0, "closed": 0, "scores": []}
+                    country_stats[c]["total"] += 1
+                    if l.get("email_sent"): country_stats[c]["emailed"] += 1
+                    if l.get("replied"): country_stats[c]["replied"] += 1
+                    if l.get("closed"): country_stats[c]["closed"] += 1
+                    if l.get("score"): country_stats[c]["scores"].append(l["score"])
+
+                country_lines = []
+                for c, s in sorted(country_stats.items(), key=lambda x: -x[1]["total"]):
+                    rr = round(s["replied"] / s["emailed"] * 100, 1) if s["emailed"] > 0 else 0
+                    cr = round(s["closed"] / s["emailed"] * 100, 1) if s["emailed"] > 0 else 0
+                    avg_score = round(sum(s["scores"]) / len(s["scores"]), 1) if s["scores"] else 0
+                    country_lines.append(f"{c}: {s['total']} leads, {s['emailed']} emailed, {rr}% reply, {cr}% close, avg_score={avg_score}")
+                lines.append("COUNTRY PERFORMANCE:\n  " + "\n  ".join(country_lines[:12]))
+
+                # Lead type performance
+                type_stats = {}
+                for l in all_leads:
+                    t = l.get("lead_type", "other")
+                    if t not in type_stats:
+                        type_stats[t] = {"total": 0, "emailed": 0, "replied": 0, "closed": 0}
+                    type_stats[t]["total"] += 1
+                    if l.get("email_sent"): type_stats[t]["emailed"] += 1
+                    if l.get("replied"): type_stats[t]["replied"] += 1
+                    if l.get("closed"): type_stats[t]["closed"] += 1
+
+                type_lines = []
+                for t, s in sorted(type_stats.items(), key=lambda x: -x[1]["total"]):
+                    rr = round(s["replied"] / s["emailed"] * 100, 1) if s["emailed"] > 0 else 0
+                    type_lines.append(f"{t}: {s['total']} leads, {s['emailed']} emailed, {rr}% reply, {s['closed']} closed")
+                lines.append("LEAD TYPE PERFORMANCE:\n  " + "\n  ".join(type_lines))
+        except:
+            pass
+
+        # Domain health
+        try:
+            outreach = db.select("outreach_log", columns="sending_domain,delivery_status", limit=5000)
+            if outreach:
+                domain_stats = {}
+                for o in outreach:
+                    d = o.get("sending_domain", "unknown")
+                    if d not in domain_stats:
+                        domain_stats[d] = {"sent": 0, "failed": 0, "bounced": 0}
+                    domain_stats[d]["sent"] += 1
+                    if o.get("delivery_status") == "failed": domain_stats[d]["failed"] += 1
+                    if o.get("delivery_status") == "bounced": domain_stats[d]["bounced"] += 1
+                domain_lines = []
+                for d, s in sorted(domain_stats.items(), key=lambda x: -x[1]["sent"]):
+                    fail_rate = round((s["failed"] + s["bounced"]) / s["sent"] * 100, 1) if s["sent"] > 0 else 0
+                    domain_lines.append(f"{d}: {s['sent']} sent, {s['failed']} failed, {s['bounced']} bounced ({fail_rate}% fail)")
+                lines.append("DOMAIN SEND STATS:\n  " + "\n  ".join(domain_lines))
+        except:
+            pass
+
+        # Paused segments
+        try:
+            paused = db.select("segment_performance", filters={"is_paused": "eq.true"}, limit=50)
+            if paused:
+                lines.append("PAUSED SEGMENTS: " + "; ".join(
+                    f"{s['segment_type']}/{s['segment_value']} (reason: {s.get('pause_reason','unknown')})" for s in paused
+                ))
+            else:
+                lines.append("PAUSED SEGMENTS: None currently paused")
+        except:
+            pass
+
+    except Exception as e:
+        lines.append(f"Analytics error: {str(e)}")
+
+    return "\n".join(lines)
+
+
 def _fallback_chat(msg: str) -> str:
-    """Smart fallback when no API key is available."""
+    """Smart fallback with real DB data when no API key is available."""
     lower = msg.lower()
     stats = agent_state["stats"]
 
-    if "status" in lower or "how" in lower:
-        status = "running (cycle " + str(agent_state["cycle"]) + ")" if agent_state["agent_loop_running"] else "idle"
-        return (f"Agent is currently {status}.\n\n"
-                f"Stats this session:\n"
-                f"• Leads scraped: {stats['leads_scraped']}\n"
-                f"• Emails sent: {stats['emails_sent']}\n"
-                f"• Forms filled: {stats['forms_filled']}\n"
+    # Try to get real DB numbers even without AI
+    db_nums = {"total": 0, "emailed": 0, "replied": 0, "closed": 0, "reply_rate": "0"}
+    try:
+        from config import get_db
+        db = get_db()
+        if db:
+            all_l = db.select("leads", columns="email_sent,replied,closed", limit=10000)
+            if all_l:
+                db_nums["total"] = len(all_l)
+                db_nums["emailed"] = sum(1 for l in all_l if l.get("email_sent"))
+                db_nums["replied"] = sum(1 for l in all_l if l.get("replied"))
+                db_nums["closed"] = sum(1 for l in all_l if l.get("closed"))
+                if db_nums["emailed"] > 0:
+                    db_nums["reply_rate"] = str(round(db_nums["replied"] / db_nums["emailed"] * 100, 1))
+    except:
+        pass
+
+    if "status" in lower or "report" in lower or ("how" in lower and "going" in lower):
+        status = f"running (cycle {agent_state['cycle']})" if agent_state["agent_loop_running"] else "idle"
+        return (f"**Agent Status: {status.upper()}**\n\n"
+                f"**Database Totals:**\n"
+                f"• Total leads: {db_nums['total']:,}\n"
+                f"• Emails sent: {db_nums['emailed']:,}\n"
+                f"• Replies: {db_nums['replied']:,} ({db_nums['reply_rate']}% reply rate)\n"
+                f"• Closed: {db_nums['closed']:,}\n\n"
+                f"**Session Stats:**\n"
+                f"• Scraped: {stats['leads_scraped']} | Qualified: {stats['leads_qualified']}\n"
+                f"• Emails: {stats['emails_sent']} | Forms: {stats['forms_filled']}\n"
                 f"• Follow-ups: {stats['followups_sent']}\n\n"
-                f"For AI-powered analysis, add your Anthropic API key to .env")
+                f"Add your Anthropic API key to .env for deeper AI-powered analysis.")
+
+    if "reply" in lower and ("low" in lower or "why" in lower or "improve" in lower):
+        return (f"**Reply Rate Analysis**\n\n"
+                f"Current reply rate: **{db_nums['reply_rate']}%** ({db_nums['replied']} replies from {db_nums['emailed']} emails)\n\n"
+                f"**Common causes for low reply rates:**\n"
+                f"1. **Domain health** — Rotate domains below 10% open rate\n"
+                f"2. **Lead quality** — Increase score threshold above 40\n"
+                f"3. **Email content** — Check personalization scores on variants\n"
+                f"4. **Follow-ups missing** — Most replies come from email #2 or #3\n"
+                f"5. **Wrong segments** — Pause countries with 0 closes after 200+ leads\n\n"
+                f"**Quick fixes:** Run follow-up sequences, use dual-channel (email+form for 2x reply rate), focus on VoIP Providers and UCaaS.\n\n"
+                f"Add your API key for AI-powered root cause analysis with your actual segment data.")
 
     if "improve" in lower or "sales" in lower or "better" in lower:
-        return ("Here are some tips to improve performance:\n\n"
-                "1. Check the Intelligence tab for segment analysis — pause countries with 0 closes after 200+ leads\n"
-                "2. Focus on VoIP Providers and UCaaS — they tend to convert best\n"
-                "3. Use both email + form fill (dual channel has 2x reply rate)\n"
-                "4. Make sure follow-up sequences are running — most replies come from email #2 or #3\n"
-                "5. Review domain health — rotate any domain under 10% open rate\n\n"
-                "For personalized AI analysis, add your Anthropic API key to .env")
+        return (f"**Performance Improvement Recommendations**\n\n"
+                f"Based on typical patterns ({db_nums['total']:,} leads, {db_nums['reply_rate']}% reply rate):\n\n"
+                f"1. **Segment analysis** — Pause countries with 0 closes after 200+ leads\n"
+                f"2. **Focus targeting** — VoIP Providers and UCaaS convert best\n"
+                f"3. **Dual channel** — Email + form fill has 2x higher reply rate\n"
+                f"4. **Follow-up cadence** — 4 emails over 14 days, most replies on #2-3\n"
+                f"5. **Domain rotation** — Swap any domain under 10% open rate\n"
+                f"6. **Lead scoring** — Raise threshold to 50+ for better quality\n\n"
+                f"Check the Intelligence tab for real segment data.")
 
     if "start" in lower or "run" in lower:
         if agent_state["agent_loop_running"]:
-            return f"The agent is already running! Currently on cycle {agent_state['cycle']}. It will keep running until you click Stop."
-        return "Click the green START AGENT button on the dashboard to begin. The agent will scrape leads, qualify them, send emails, fill forms, and send follow-ups in a continuous loop every hour."
+            return f"**Agent is already running** on cycle {agent_state['cycle']}. It will keep processing until you stop it."
+        return ("**Ready to start.** The agent will run: Scrape → Qualify → Email → Forms → Follow-up → Report in a loop every hour.\n\n"
+                "Use the /start command or click START AGENT on the dashboard.")
 
     if "stop" in lower:
         if not agent_state["agent_loop_running"]:
-            return "The agent is already stopped. Click START AGENT to begin a new session."
-        return "Click the red STOP AGENT button to stop the agent. It will finish the current step and then stop gracefully."
+            return "**Agent is already stopped.** Use /start or click START AGENT to begin."
+        return "**Stopping...** Use the /stop command or click STOP AGENT. It will finish the current step gracefully."
 
-    return (f"I'm here to help! I can answer questions about:\n\n"
-            f"• Agent status and pipeline progress\n"
-            f"• Performance analysis and improvement tips\n"
-            f"• Lead quality and segment insights\n"
-            f"• Email deliverability and domain health\n\n"
-            f"For full AI-powered conversation, add your Anthropic API key to .env")
+    if "lead" in lower and ("find" in lower or "get" in lower or "new" in lower or "scrape" in lower):
+        return (f"**Lead Generation**\n\n"
+                f"Current database: **{db_nums['total']:,} leads**\n\n"
+                f"Sources available:\n"
+                f"• Google Maps (Apify) — primary source\n"
+                f"• Apollo.io — best email quality\n"
+                f"• Google Search — directory scraping\n\n"
+                f"Daily target: 1,000 leads. Use /run scrape to run the scraper or /start to begin the full pipeline.")
+
+    if "error" in lower:
+        errors = agent_state["errors"][-5:] if agent_state["errors"] else []
+        if errors:
+            error_text = "\n".join(f"• [{e.get('time','?')}] {e.get('msg','Unknown error')}" for e in errors)
+            return f"**Recent Errors ({len(errors)}):**\n\n{error_text}"
+        return "**No errors recorded** in this session."
+
+    return (f"**WholesaleHunter Command Center**\n\n"
+            f"I can help with:\n"
+            f"• **Status** — Full pipeline and project report\n"
+            f"• **Leads** — Find, analyze, and score leads\n"
+            f"• **Reply rates** — Why they're low and how to fix\n"
+            f"• **Segments** — Which countries/types perform best\n"
+            f"• **Domains** — Email domain health and rotation\n"
+            f"• **Actions** — Start/stop agent, run pipeline steps\n\n"
+            f"Type /help to see all slash commands or ask anything in plain English.\n\n"
+            f"DB: {db_nums['total']:,} leads | {db_nums['emailed']:,} emailed | {db_nums['reply_rate']}% reply rate")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -753,6 +936,48 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
                 self._json_response({"sequences": logs})
             else:
                 self._json_response({"sequences": []})
+
+        elif path == "/api/chat-analytics":
+            # Structured analytics for the chat command center
+            from modules.database import db
+            analytics = {"funnel": {}, "top_countries": [], "domain_health": [], "recommendations": []}
+            if db:
+                try:
+                    all_leads = db.select("leads", columns="country,lead_type,email_sent,replied,closed,score,source", limit=10000)
+                    total = len(all_leads)
+                    emailed = sum(1 for l in all_leads if l.get("email_sent"))
+                    replied = sum(1 for l in all_leads if l.get("replied"))
+                    closed = sum(1 for l in all_leads if l.get("closed"))
+                    analytics["funnel"] = {
+                        "total": total, "emailed": emailed, "replied": replied, "closed": closed,
+                        "reply_rate": round(replied / emailed * 100, 1) if emailed else 0,
+                        "close_rate": round(closed / emailed * 100, 1) if emailed else 0,
+                    }
+                    # Country breakdown
+                    cs = {}
+                    for l in all_leads:
+                        c = l.get("country", "?")
+                        if c not in cs: cs[c] = {"total":0,"emailed":0,"replied":0,"closed":0}
+                        cs[c]["total"] += 1
+                        if l.get("email_sent"): cs[c]["emailed"] += 1
+                        if l.get("replied"): cs[c]["replied"] += 1
+                        if l.get("closed"): cs[c]["closed"] += 1
+                    analytics["top_countries"] = sorted(
+                        [{"country":c, **s, "reply_rate": round(s["replied"]/s["emailed"]*100,1) if s["emailed"] else 0}
+                         for c,s in cs.items()],
+                        key=lambda x: -x["total"]
+                    )[:10]
+                    # Recommendations
+                    recs = []
+                    for c, s in cs.items():
+                        if s["emailed"] >= 200 and s["closed"] == 0:
+                            recs.append(f"Pause {c} — {s['emailed']} emails, 0 closes")
+                    if analytics["funnel"]["reply_rate"] < 2:
+                        recs.append("Reply rate below 2% — check domain health and email content")
+                    analytics["recommendations"] = recs
+                except Exception as e:
+                    analytics["error"] = str(e)
+            self._json_response(analytics)
 
         elif path == "/" or path == "/dashboard":
             # Serve the dashboard
