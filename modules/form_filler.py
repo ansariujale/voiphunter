@@ -2,6 +2,7 @@
 WholesaleHunter v2 — Contact Form Filling Module
 Uses Playwright (headless browser) to find and fill contact forms on lead websites.
 Human-like behavior with random delays, CAPTCHA detection, cookie banner dismissal.
+Cleans website URLs to base domain before processing.
 """
 
 import re
@@ -11,7 +12,7 @@ import logging
 import asyncio
 from datetime import datetime, timezone
 from typing import Optional
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from playwright.async_api import async_playwright, Page, Browser, TimeoutError as PlaywrightTimeout
 
@@ -21,6 +22,41 @@ from config import (
 from modules.database import update_lead, log_outreach
 
 logger = logging.getLogger("wholesalehunter.formfiller")
+
+
+# ═══════════════════════════════════════════════════════════════
+# URL CLEANING — Strip endpoints, keep base domain only
+# ═══════════════════════════════════════════════════════════════
+
+def clean_website_url(url: str) -> str:
+    """
+    Clean a website URL by stripping all paths/endpoints/query params/fragments.
+    Returns just the base domain: https://example.com
+
+    Examples:
+        https://example.com/products/voip?ref=123  →  https://example.com
+        http://www.abc-telecom.net/en/services/sip  →  http://www.abc-telecom.net
+        example.com/contact                         →  https://example.com
+        https://portal.company.co.uk/login#top      →  https://portal.company.co.uk
+    """
+    if not url or not isinstance(url, str):
+        return url
+
+    url = url.strip()
+
+    # Add scheme if missing
+    if not url.startswith(('http://', 'https://')):
+        url = f"https://{url}"
+
+    try:
+        parsed = urlparse(url)
+        # Rebuild with only scheme + netloc (no path, query, fragment)
+        clean = urlunparse((parsed.scheme, parsed.netloc, '', '', '', ''))
+        # Ensure no trailing slash
+        clean = clean.rstrip('/')
+        return clean
+    except Exception:
+        return url
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -55,7 +91,7 @@ async def human_type(page: Page, selector: str, text: str):
 # ═══════════════════════════════════════════════════════════════
 
 async def dismiss_cookie_banner(page: Page):
-    """Try to dismiss cookie consent banners."""
+    """Try to dismiss cookie consent banners and overlays."""
     cookie_selectors = [
         'button:has-text("Accept")',
         'button:has-text("Accept All")',
@@ -65,11 +101,19 @@ async def dismiss_cookie_banner(page: Page):
         'button:has-text("Got it")',
         'button:has-text("Dismiss")',
         'button:has-text("Close")',
+        'button:has-text("Agree")',
         '[id*="cookie"] button',
         '[class*="cookie"] button',
         '[id*="consent"] button',
         '[class*="consent"] button',
         '[data-testid*="cookie"] button',
+        '.cc-allow',
+        '.CookieConsent button',
+        '.js-accept-cookies',
+        '[aria-label*="accept"]',
+        '[aria-label*="agree"]',
+        '.modal-footer .btn',
+        '.close, [aria-label="Close"]',
     ]
     for selector in cookie_selectors:
         try:
@@ -91,7 +135,6 @@ async def has_captcha(page: Page) -> bool:
     """Check if the page has a CAPTCHA that would block form submission."""
     try:
         has = await page.evaluate("""() => {
-            const html = document.documentElement.innerHTML.toLowerCase();
             // Check for reCAPTCHA
             if (document.querySelector('iframe[src*="recaptcha"]')) return true;
             if (document.querySelector('.g-recaptcha')) return true;
@@ -109,12 +152,56 @@ async def has_captcha(page: Page) -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════
-# FORM DETECTION
+# COMPREHENSIVE CONTACT PAGE PATHS (from Selenium script)
+# ═══════════════════════════════════════════════════════════════
+
+COMPREHENSIVE_CONTACT_PATHS = [
+    # Standard
+    '/contact', '/contact-us', '/contactus', '/contact_us',
+    '/get-in-touch', '/getintouch', '/get_in_touch',
+    '/reach-us', '/reachus', '/reach_us',
+    '/support', '/help', '/enquiry', '/inquiry',
+    '/enquiries', '/inquiries',
+    # Quote / request
+    '/get-quote', '/getquote', '/get_quote',
+    '/request-quote', '/requestquote', '/request_quote',
+    '/quote', '/request-information',
+    # Sales / partnership
+    '/sales', '/sales-contact', '/partnership', '/partners',
+    '/work-with-us', '/collaborate',
+    # Customer service
+    '/customer-service', '/customerservice',
+    '/customer-support', '/customersupport',
+    '/customer-care', '/customercare',
+    '/technical-support', '/technicalsupport',
+    '/help-desk', '/helpdesk',
+    # Communication
+    '/talk-to-us', '/talktous',
+    '/connect', '/connect-with-us',
+    '/message', '/message-us', '/send-message',
+    '/write-to-us', '/feedback',
+    # File extensions
+    '/contact.html', '/contact.php', '/contact.aspx',
+    # Company structure paths
+    '/about/contact', '/about/contact-us',
+    '/company/contact', '/company/contact-us',
+    '/help/contact', '/support/contact',
+    # Regional variations
+    '/en/contact', '/en/contact-us',
+    # Localized
+    '/kontakt', '/contato', '/contacto', '/contattaci',
+    '/nous-contacter', '/iletisim',
+]
+
+
+# ═══════════════════════════════════════════════════════════════
+# FORM DETECTION (Enhanced)
 # ═══════════════════════════════════════════════════════════════
 
 async def find_contact_form(page: Page, base_url: str) -> Optional[str]:
     """
     Try to find a contact form on the website.
+    base_url should already be cleaned to root domain.
     Returns the URL of the page with the form, or None.
     """
     # First check the homepage for a contact form
@@ -127,37 +214,72 @@ async def find_contact_form(page: Page, base_url: str) -> Optional[str]:
     except Exception as e:
         logger.debug(f"Homepage check failed for {base_url}: {e}")
 
-    # Try common contact page paths
-    for path in FORM_PATHS_TO_TRY:
-        url = urljoin(base_url, path)
+    # Try comprehensive contact page paths (merged from config + Selenium script)
+    all_paths = list(dict.fromkeys(FORM_PATHS_TO_TRY + COMPREHENSIVE_CONTACT_PATHS))
+    for path in all_paths:
+        url = urljoin(base_url + '/', path)
         try:
-            response = await page.goto(url, wait_until="domcontentloaded", timeout=15000)
+            response = await page.goto(url, wait_until="domcontentloaded", timeout=12000)
             if response and response.status == 200:
-                await human_delay(0.5, 1.5)
+                await human_delay(0.3, 1.0)
+                # Quick 404 check via title
+                title = await page.title()
+                if title and any(x in title.lower() for x in ['404', 'not found', 'page not found']):
+                    continue
                 if await _page_has_form(page):
+                    logger.info(f"Found contact form at direct URL: {url}")
                     return url
         except Exception:
             continue
 
-    # Try finding contact link in navigation
+    # Try finding contact link in navigation/footer via JS
     try:
         await page.goto(base_url, wait_until="domcontentloaded", timeout=15000)
+        await human_delay(0.5, 1.0)
         contact_link = await page.evaluate("""() => {
-            const links = Array.from(document.querySelectorAll('a'));
-            const contactLink = links.find(a => {
-                const text = (a.textContent || '').toLowerCase();
-                const href = (a.href || '').toLowerCase();
-                return text.includes('contact') || text.includes('get in touch')
-                    || text.includes('reach us') || text.includes('inquiry')
-                    || text.includes('enquiry') || text.includes('request')
-                    || href.includes('contact') || href.includes('inquiry');
-            });
-            return contactLink ? contactLink.href : null;
+            const contactKeywords = [
+                'contact us', 'contact-us', 'contactus', '/contact',
+                'get in touch', 'reach us', 'support', 'enquiry', 'inquiry',
+                'customer service', 'customer support', 'help desk',
+                'partnership', 'connect with us', 'talk to us', 'write to us',
+                'send message', 'get quote', 'request quote'
+            ];
+            const skipKeywords = [
+                'login', 'signin', 'register', 'cart', 'shop', 'blog',
+                'news', 'search', 'privacy', 'terms', 'facebook', 'twitter',
+                'linkedin', 'instagram', 'youtube'
+            ];
+
+            // Priority areas: nav, header, footer
+            const areas = [
+                ...document.querySelectorAll('nav a, header a, .navbar a, [role="navigation"] a'),
+                ...document.querySelectorAll('footer a, .footer a, [role="contentinfo"] a'),
+                ...document.querySelectorAll('a')  // fallback: all links
+            ];
+
+            const seen = new Set();
+            for (const link of areas) {
+                const href = (link.href || '').toLowerCase().trim();
+                const text = (link.textContent || '').toLowerCase().trim();
+                const title = (link.title || '').toLowerCase();
+                const aria = (link.getAttribute('aria-label') || '').toLowerCase();
+                const allText = text + ' ' + href + ' ' + title + ' ' + aria;
+
+                if (!href || href === '#' || href.startsWith('javascript:')) continue;
+                if (seen.has(href)) continue;
+                seen.add(href);
+                if (skipKeywords.some(s => allText.includes(s))) continue;
+                if (contactKeywords.some(k => allText.includes(k))) {
+                    return href;
+                }
+            }
+            return null;
         }""")
         if contact_link:
             await page.goto(contact_link, wait_until="domcontentloaded", timeout=15000)
             await human_delay(0.5, 1.0)
             if await _page_has_form(page):
+                logger.info(f"Found contact form via navigation link: {contact_link}")
                 return contact_link
     except Exception:
         pass
@@ -166,12 +288,22 @@ async def find_contact_form(page: Page, base_url: str) -> Optional[str]:
 
 
 async def _page_has_form(page: Page) -> bool:
-    """Check if the current page has a contact/inquiry form."""
+    """Check if the current page has a contact/inquiry form (not a search form)."""
     try:
         has_form = await page.evaluate("""() => {
             const forms = document.querySelectorAll('form');
             for (const form of forms) {
                 const inputs = form.querySelectorAll('input, textarea, select');
+                const formClass = (form.className || '').toLowerCase();
+                const formId = (form.id || '').toLowerCase();
+                const formAction = (form.action || '').toLowerCase();
+                const formText = formClass + ' ' + formId + ' ' + formAction;
+
+                // Skip search forms
+                if (formText.includes('search') || formText.includes('query')) continue;
+                // Skip login/register forms
+                if (formText.includes('login') || formText.includes('signin') || formText.includes('register')) continue;
+
                 const hasEmail = Array.from(inputs).some(i =>
                     (i.type || '').includes('email') ||
                     (i.name || '').toLowerCase().includes('email') ||
@@ -182,9 +314,16 @@ async def _page_has_form(page: Page) -> bool:
                     (i.name || '').toLowerCase().includes('message') ||
                     (i.name || '').toLowerCase().includes('comment') ||
                     (i.name || '').toLowerCase().includes('inquiry') ||
-                    (i.name || '').toLowerCase().includes('details')
+                    (i.name || '').toLowerCase().includes('enquiry') ||
+                    (i.name || '').toLowerCase().includes('details') ||
+                    (i.name || '').toLowerCase().includes('description')
                 );
+                // A contact form typically has email + message/textarea fields
                 if (hasEmail && hasMessage && inputs.length >= 3) {
+                    return true;
+                }
+                // Also accept forms with email + 3+ fields even without textarea
+                if (hasEmail && inputs.length >= 4) {
                     return true;
                 }
             }
@@ -196,12 +335,48 @@ async def _page_has_form(page: Page) -> bool:
 
 
 # ═══════════════════════════════════════════════════════════════
+# COMPREHENSIVE FIELD MATCHING PATTERNS (from Selenium script)
+# ═══════════════════════════════════════════════════════════════
+
+# These patterns are injected into the JS field detection for exhaustive matching
+FIELD_PATTERNS_JS = """
+const fieldPatterns = {
+    first_name: ['fname', 'first_name', 'firstname', 'first', 'given_name', 'givenname',
+        'forename', 'personal_name', 'name_first', 'prenom', 'first-name'],
+    last_name: ['lname', 'last_name', 'lastname', 'last', 'family_name', 'familyname',
+        'surname', 'name_last', 'second_name', 'apellido', 'sobrenome', 'last-name'],
+    name: ['name', 'fullname', 'full_name', 'username', 'contact_name', 'contactname',
+        'your_name', 'customer_name', 'client_name', 'nombre', 'nome', 'nom',
+        'your-name', 'full-name'],
+    email: ['email', 'mail', 'user_email', 'contact_email', 'your_email', 'e-mail',
+        'email_address', 'emailaddress', 'customer_email', 'correo', 'courriel', 'eposta'],
+    phone: ['phone', 'number', 'contact_number', 'mobile', 'tel', 'telephone',
+        'phone_number', 'phonenumber', 'contact_phone', 'your_phone', 'cell', 'gsm',
+        'telefono', 'telefone'],
+    subject: ['subject', 'subj', 'topic', 'title', 'enquiry_subject', 'message_subject',
+        'contact_subject', 'subject_line', 'reason', 'purpose', 'regarding', 'asunto',
+        'assunto', 'objet', 'oggetto'],
+    company: ['company', 'organization', 'organisation', 'business', 'firm', 'employer',
+        'company_name', 'companyname', 'org', 'corp', 'corporation', 'enterprise',
+        'institution', 'workplace', 'business_name', 'empresa'],
+    message: ['message', 'msg', 'enquiry', 'comment', 'details', 'description',
+        'your-message', 'your_message', 'comments', 'inquiry', 'request', 'feedback',
+        'textarea', 'additional_info', 'notes', 'content', 'body', 'requirements',
+        'questions', 'concerns', 'specifications', 'brief', 'overview', 'summary',
+        'how can we help', 'tell us more', 'write a message', 'any requirements',
+        'proyecto', 'mensaje', 'mensagem', 'messaggio', 'mesaj']
+};
+"""
+
+
+# ═══════════════════════════════════════════════════════════════
 # FORM FILLING (Human-like with native Playwright calls)
 # ═══════════════════════════════════════════════════════════════
 
 async def fill_contact_form(page: Page, lead: dict) -> dict:
     """
     Fill and submit a contact form on the current page.
+    Uses comprehensive field patterns from Selenium script.
     Returns dict with: success, fields_filled, error_message
     """
     data = FORM_FILL_DATA
@@ -211,20 +386,33 @@ async def fill_contact_form(page: Page, lead: dict) -> dict:
         return {"success": False, "fields_filled": 0, "error_message": "CAPTCHA detected — skipped"}
 
     try:
-        # Map form fields using JavaScript analysis
+        # Map form fields using comprehensive JavaScript analysis
         field_map = await page.evaluate("""(data) => {
+            """ + FIELD_PATTERNS_JS + """
+
             const forms = document.querySelectorAll('form');
             let targetForm = null;
 
             for (const form of forms) {
                 const inputs = form.querySelectorAll('input, textarea, select');
+                const formClass = (form.className || '').toLowerCase();
+                const formId = (form.id || '').toLowerCase();
+                // Skip search/login forms
+                if (formClass.includes('search') || formId.includes('search')) continue;
+                if (formClass.includes('login') || formId.includes('login')) continue;
+
                 const hasEmail = Array.from(inputs).some(i =>
                     (i.type || '').includes('email') ||
-                    (i.name || '').toLowerCase().includes('email')
+                    (i.name || '').toLowerCase().includes('email') ||
+                    (i.placeholder || '').toLowerCase().includes('email')
                 );
                 if (hasEmail && inputs.length >= 3) {
                     targetForm = form;
                     break;
+                }
+                // Fallback: any form with 4+ visible inputs
+                if (!targetForm && inputs.length >= 4) {
+                    targetForm = form;
                 }
             }
 
@@ -239,45 +427,79 @@ async def fill_contact_form(page: Page, lead: dict) -> dict:
                 const placeholder = (input.placeholder || '').toLowerCase();
                 const label = input.labels?.[0]?.textContent?.toLowerCase() || '';
                 const id = (input.id || '').toLowerCase();
-                const combined = name + ' ' + placeholder + ' ' + label + ' ' + id;
+                const cls = (input.className || '').toLowerCase();
                 const ariaLabel = (input.getAttribute('aria-label') || '').toLowerCase();
-                const allText = combined + ' ' + ariaLabel;
+                const allText = name + ' ' + placeholder + ' ' + label + ' ' + id + ' ' + cls + ' ' + ariaLabel;
 
                 if (type === 'hidden' || type === 'submit' || type === 'button' ||
-                    type === 'checkbox' || type === 'radio' || type === 'file') continue;
+                    type === 'checkbox' || type === 'radio' || type === 'file' ||
+                    type === 'reset' || type === 'image') continue;
+
+                // Skip honeypot fields
+                if (input.style && input.style.display === 'none') continue;
+                if (input.offsetParent === null && type !== 'hidden') continue;
 
                 // Build a unique CSS selector for this element
                 let selector = '';
                 if (input.id) selector = '#' + CSS.escape(input.id);
-                else if (input.name) selector = `[name="${CSS.escape(input.name)}"]`;
+                else if (input.name) {
+                    // Use form-scoped name selector to be more specific
+                    selector = `[name="${CSS.escape(input.name)}"]`;
+                }
                 else {
                     const idx = Array.from(targetForm.querySelectorAll(input.tagName)).indexOf(input);
                     selector = `form ${input.tagName.toLowerCase()}:nth-of-type(${idx + 1})`;
                 }
 
+                // Match field type using comprehensive patterns
                 let fieldType = null;
-                // First name
-                if (allText.includes('first') && allText.includes('name')) fieldType = 'first_name';
-                // Last name
-                else if (allText.includes('last') || allText.includes('surname') || allText.includes('family')) fieldType = 'last_name';
-                // Full name (but not company name)
-                else if ((allText.includes('name') || allText.includes('full name') || allText.includes('your name'))
-                    && !allText.includes('company') && !allText.includes('org') && !allText.includes('business')
-                    && !allText.includes('last') && !allText.includes('first')) fieldType = 'name';
-                // Email
-                else if (type === 'email' || allText.includes('email') || allText.includes('e-mail')) fieldType = 'email';
-                // Phone
-                else if (type === 'tel' || allText.includes('phone') || allText.includes('tel') || allText.includes('mobile') || allText.includes('cell')) fieldType = 'phone';
-                // Company
-                else if (allText.includes('company') || allText.includes('organization') || allText.includes('organisation') || allText.includes('business name') || allText.includes('org name')) fieldType = 'company';
-                // Subject
-                else if (allText.includes('subject') || allText.includes('topic') || allText.includes('regarding') || allText.includes('reason')) fieldType = 'subject';
-                // Message (textarea or message field)
-                else if (input.tagName === 'TEXTAREA' || allText.includes('message') || allText.includes('comment')
-                    || allText.includes('inquiry') || allText.includes('enquiry') || allText.includes('details')
-                    || allText.includes('question') || allText.includes('description') || allText.includes('how can we help')) fieldType = 'message';
-                // Website/URL
-                else if (type === 'url' || allText.includes('website') || allText.includes('url')) fieldType = 'website';
+
+                // Check type attribute first for strong signals
+                if (type === 'email') { fieldType = 'email'; }
+                else if (type === 'tel') { fieldType = 'phone'; }
+                else if (type === 'url') { fieldType = 'website'; }
+
+                // Then check against all patterns
+                if (!fieldType) {
+                    // First name (must check before generic 'name')
+                    if (fieldPatterns.first_name.some(p => allText.includes(p)) &&
+                        (allText.includes('first') || allText.includes('fname') || allText.includes('given'))) {
+                        fieldType = 'first_name';
+                    }
+                    // Last name
+                    else if (fieldPatterns.last_name.some(p => allText.includes(p)) &&
+                        (allText.includes('last') || allText.includes('lname') || allText.includes('surname') || allText.includes('family'))) {
+                        fieldType = 'last_name';
+                    }
+                    // Full name (not company, not first/last)
+                    else if (fieldPatterns.name.some(p => allText.includes(p)) &&
+                        !allText.includes('company') && !allText.includes('org') &&
+                        !allText.includes('business') && !allText.includes('last') &&
+                        !allText.includes('first') && !allText.includes('email') &&
+                        !allText.includes('user')) {
+                        fieldType = 'name';
+                    }
+                    // Email
+                    else if (fieldPatterns.email.some(p => allText.includes(p))) {
+                        fieldType = 'email';
+                    }
+                    // Phone
+                    else if (fieldPatterns.phone.some(p => allText.includes(p))) {
+                        fieldType = 'phone';
+                    }
+                    // Company
+                    else if (fieldPatterns.company.some(p => allText.includes(p))) {
+                        fieldType = 'company';
+                    }
+                    // Subject
+                    else if (fieldPatterns.subject.some(p => allText.includes(p))) {
+                        fieldType = 'subject';
+                    }
+                    // Message (textarea always treated as message if no other match)
+                    else if (input.tagName === 'TEXTAREA' || fieldPatterns.message.some(p => allText.includes(p))) {
+                        fieldType = 'message';
+                    }
+                }
 
                 if (fieldType) {
                     fields.push({ selector, fieldType, tagName: input.tagName });
@@ -323,7 +545,7 @@ async def fill_contact_form(page: Page, lead: dict) -> dict:
                     await human_delay(0.2, 0.5)
                     await page.fill(selector, value, timeout=3000)
                 except Exception:
-                    # Fallback: use evaluate
+                    # Fallback: use evaluate with comprehensive event dispatch
                     await page.evaluate("""({sel, val}) => {
                         const el = document.querySelector(sel);
                         if (el) {
@@ -331,9 +553,14 @@ async def fill_contact_form(page: Page, lead: dict) -> dict:
                             el.value = val;
                             el.dispatchEvent(new Event('input', { bubbles: true }));
                             el.dispatchEvent(new Event('change', { bubbles: true }));
+                            el.dispatchEvent(new Event('blur', { bubbles: true }));
+                            // React compatibility
+                            if (el._valueTracker) { el._valueTracker.setValue(''); }
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
                         }
                     }""", {"sel": selector, "val": value})
                 filled_count += 1
+                logger.debug(f"Filled {field_type}: {selector}")
             except Exception as e:
                 logger.debug(f"Failed to fill {field_type} ({selector}): {e}")
 
@@ -346,7 +573,7 @@ async def fill_contact_form(page: Page, lead: dict) -> dict:
         # Capture URL before submit for change detection
         url_before = page.url
 
-        # Submit the form
+        # Submit the form with comprehensive button detection
         submitted = await page.evaluate("""() => {
             const forms = document.querySelectorAll('form');
             for (const form of forms) {
@@ -355,24 +582,33 @@ async def fill_contact_form(page: Page, lead: dict) -> dict:
                     (i.type || '').includes('email') || (i.name || '').toLowerCase().includes('email'));
                 if (!hasEmail || inputs.length < 3) continue;
 
-                // Try clicking submit button
-                const submitBtn = form.querySelector(
-                    'button[type="submit"], input[type="submit"], ' +
-                    'button:not([type]), button[type="button"]'
-                );
-                if (submitBtn) {
-                    submitBtn.click();
-                    return 'clicked';
+                // Try all submit button patterns
+                const submitSelectors = [
+                    'button[type="submit"]', 'input[type="submit"]',
+                    'button:not([type])',
+                    '.wpcf7-submit', '.wpcf7-form-control',
+                    'button[class*="submit"]', 'button[class*="send"]',
+                    'input[class*="submit"]', 'input[class*="send"]',
+                    'button[class*="btn-primary"]', 'button[class*="btn-success"]',
+                    '[data-action="submit"]'
+                ];
+                for (const sel of submitSelectors) {
+                    const btn = form.querySelector(sel);
+                    if (btn && btn.offsetParent !== null) {
+                        btn.click();
+                        return 'clicked';
+                    }
                 }
                 // Fallback: form.submit()
                 try { form.submit(); return 'submitted'; } catch(e) {}
             }
             // Try any visible submit-like button on page
-            const btns = document.querySelectorAll('button, input[type="submit"]');
+            const btns = document.querySelectorAll('button, input[type="submit"], a.btn');
+            const submitWords = ['submit', 'send', 'contact', 'get in touch', 'request',
+                'send message', 'send enquiry', 'send inquiry', 'post', 'send form'];
             for (const btn of btns) {
-                const text = (btn.textContent || btn.value || '').toLowerCase();
-                if (text.includes('submit') || text.includes('send') || text.includes('contact')
-                    || text.includes('get in touch') || text.includes('request')) {
+                const text = (btn.textContent || btn.value || '').toLowerCase().trim();
+                if (submitWords.some(w => text.includes(w)) && btn.offsetParent !== null) {
                     btn.click();
                     return 'clicked_fallback';
                 }
@@ -418,11 +654,12 @@ async def _detect_submission_success(page: Page, url_before: str) -> bool:
             const text = document.body.innerText.toLowerCase();
             const successPhrases = [
                 'thank you', 'thanks for', 'message sent', 'form submitted',
-                'successfully', 'we will get back', 'we\'ll get back',
+                'successfully', 'we will get back', 'we\\'ll get back',
                 'received your', 'submission received', 'message received',
-                'request received', 'inquiry received', 'we\'ll be in touch',
+                'request received', 'inquiry received', 'we\\'ll be in touch',
                 'we will be in touch', 'confirmation', 'been submitted',
-                'appreciate your', 'hear from us'
+                'appreciate your', 'hear from us', 'enquiry sent',
+                'contact form submitted', 'we will contact you'
             ];
             return successPhrases.some(phrase => text.includes(phrase));
         }""")
@@ -439,7 +676,9 @@ async def _detect_form_errors(page: Page) -> Optional[str]:
             const errorSelectors = [
                 '.error', '.form-error', '.field-error', '.alert-danger',
                 '.validation-error', '[role="alert"]', '.error-message',
-                '.form-message.error', '.wpcf7-not-valid-tip'
+                '.form-message.error', '.wpcf7-not-valid-tip',
+                '.wpcf7-response-output.wpcf7-validation-errors',
+                '.gfield_error', '.ninja-forms-field-error'
             ];
             for (const sel of errorSelectors) {
                 const el = document.querySelector(sel);
@@ -459,7 +698,7 @@ async def _detect_form_errors(page: Page) -> Optional[str]:
 # ═══════════════════════════════════════════════════════════════
 
 async def process_lead_form(browser: Browser, lead: dict) -> dict:
-    """Process a single lead: find form, fill it, report result."""
+    """Process a single lead: clean URL, find form, fill it, report result."""
     website = lead.get("website_url", "")
     if not website:
         return {"lead_id": lead.get("id"), "success": False, "reason": "no_website",
@@ -467,6 +706,10 @@ async def process_lead_form(browser: Browser, lead: dict) -> dict:
 
     if not website.startswith("http"):
         website = f"https://{website}"
+
+    # *** CLEAN URL: strip endpoints, keep base domain only ***
+    website = clean_website_url(website)
+    logger.info(f"Cleaned URL for {lead.get('company_name', '?')}: {website}")
 
     context = await browser.new_context(
         user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
