@@ -785,6 +785,10 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
                 filters = {}
                 if params.get("country"):
                     filters["country"] = f"eq.{params['country'][0]}"
+                if params.get("state"):
+                    filters["state"] = f"eq.{params['state'][0]}"
+                if params.get("city"):
+                    filters["city"] = f"eq.{params['city'][0]}"
                 if params.get("lead_type"):
                     filters["lead_type"] = f"eq.{params['lead_type'][0]}"
                 if params.get("source"):

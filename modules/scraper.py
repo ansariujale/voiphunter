@@ -58,6 +58,45 @@ def extract_domain(url: str) -> Optional[str]:
         return None
 
 
+def extract_state_from_address(address: str, country: str = "") -> str:
+    """
+    Extract state/province from a full address string.
+    Google Maps addresses typically end with: ..., City, State ZIP, Country
+    """
+    if not address:
+        return ""
+
+    # Try to parse state from comma-separated address parts
+    parts = [p.strip() for p in address.split(",") if p.strip()]
+    if len(parts) < 2:
+        return ""
+
+    # For US addresses: "123 Main St, City, ST 12345" or "City, ST 12345, USA"
+    # For other countries: "Street, City, Province, Country"
+    # Work backwards — state is usually 2nd or 3rd from the end
+    for part in reversed(parts[1:]):  # skip first part (street)
+        # Remove ZIP/postal codes (digits at start or end)
+        cleaned = re.sub(r'\b\d{4,10}\b', '', part).strip()
+        cleaned = re.sub(r'^\d+\s*', '', cleaned).strip()
+        cleaned = re.sub(r'\s*\d+$', '', cleaned).strip()
+        if not cleaned:
+            continue
+        # Skip if it's just the country name
+        if cleaned.lower() in [country.lower(), "usa", "us", "uk", "united states", "united kingdom"]:
+            continue
+        # Skip if it looks like a street address (has numbers)
+        if re.match(r'^\d', part.strip()):
+            continue
+        # If it's a short code (2-3 letters like "CA", "NY", "TX") — likely a state
+        if re.match(r'^[A-Z]{2,3}$', cleaned):
+            return cleaned
+        # If the cleaned part is a plausible state/province name (2-30 chars, no digits)
+        if 2 <= len(cleaned) <= 30 and not re.search(r'\d', cleaned):
+            return cleaned
+
+    return ""
+
+
 def clean_lead(raw: dict, source: str, keyword: str = "", country: str = "") -> Optional[dict]:
     domain = extract_domain(raw.get("website") or raw.get("domain") or "")
     if not domain or len(domain) < 4:
@@ -69,6 +108,11 @@ def clean_lead(raw: dict, source: str, keyword: str = "", country: str = "") -> 
 
     lead_type = classify_lead_type(company, raw.get("description", ""))
 
+    # Extract state from address if not provided directly
+    state = raw.get("state") or ""
+    if not state and raw.get("address"):
+        state = extract_state_from_address(raw.get("address", ""), country)
+
     return {
         "company_domain": domain,
         "company_name": company,
@@ -79,6 +123,7 @@ def clean_lead(raw: dict, source: str, keyword: str = "", country: str = "") -> 
         "contact_title": raw.get("title") or "",
         "country": country or raw.get("country", "Unknown"),
         "city": raw.get("city") or "",
+        "state": state,
         "lead_type": lead_type,
         "source": source,
         "keyword_used": keyword,
@@ -194,6 +239,8 @@ def scrape_google_maps_apify(keyword: str, country: str, city: str = "", max_pla
                 "email": "",  # Google Maps doesn't provide email
                 "country": country,
                 "city": city or place.get("city") or place.get("neighborhood") or "",
+                "state": place.get("state") or "",
+                "address": place.get("address") or place.get("street") or "",
                 "description": place.get("categoryName") or place.get("subTitle") or "",
             }
 
@@ -250,6 +297,7 @@ def scrape_apollo(country: str, page: int = 1, per_page: int = 100) -> list[dict
                 "description": org.get("short_description") or "",
                 "country": country,
                 "city": person.get("city") or org.get("city") or "",
+                "state": person.get("state") or org.get("state") or "",
             }
             cleaned = clean_lead(lead, source="apollo", keyword=f"apollo_{country}", country=country)
             if cleaned:

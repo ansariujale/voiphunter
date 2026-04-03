@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS leads (
   contact_phone TEXT,
   country TEXT NOT NULL DEFAULT '',
   city TEXT DEFAULT '',
+  state TEXT DEFAULT '',
   lead_type TEXT DEFAULT 'other',
   source TEXT DEFAULT 'other',
   keyword_used TEXT,
@@ -54,6 +55,8 @@ CREATE INDEX IF NOT EXISTS idx_leads_email_sent ON leads(email_sent);
 CREATE INDEX IF NOT EXISTS idx_leads_replied ON leads(replied);
 CREATE INDEX IF NOT EXISTS idx_leads_closed ON leads(closed);
 CREATE INDEX IF NOT EXISTS idx_leads_excluded ON leads(excluded);
+CREATE INDEX IF NOT EXISTS idx_leads_state ON leads(state);
+CREATE INDEX IF NOT EXISTS idx_leads_city ON leads(city);
 CREATE INDEX IF NOT EXISTS idx_leads_followup ON leads(next_followup) WHERE next_followup IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_leads_created ON leads(created_at DESC);
 
