@@ -121,12 +121,19 @@ def get_best_domain() -> str | None:
     """
     Pick the sending domain with the most remaining capacity today.
     Returns None if all domains are at capacity.
+    Skips any domain that has exceeded or reached its daily limit.
     """
     best_domain = None
     best_remaining = 0
 
     for domain in SENDING_DOMAINS:
-        remaining = get_remaining_capacity(domain)
+        limit = get_daily_limit(domain)
+        sent = get_emails_sent_today(domain)
+        # Hard block: skip any domain at or over limit
+        if sent >= limit:
+            logger.debug(f"[Warmup] {domain}: BLOCKED ({sent}/{limit})")
+            continue
+        remaining = limit - sent
         if remaining > best_remaining:
             best_remaining = remaining
             best_domain = domain
@@ -151,12 +158,33 @@ def get_warmup_status() -> list[dict]:
         day = get_warmup_day(domain)
         limit = get_daily_limit(domain)
         sent = get_emails_sent_today(domain)
+        exceeded = sent > limit
+        at_capacity = sent >= limit
+        usage_pct = round(sent / limit * 100, 1) if limit > 0 else 0
+
+        # Health label based on capacity usage
+        if exceeded:
+            health = "exceeded"
+        elif at_capacity:
+            health = "limit"
+        elif usage_pct >= 80:
+            health = "poor"
+        elif usage_pct >= 50:
+            health = "moderate"
+        elif sent == 0:
+            health = "new"
+        else:
+            health = "healthy"
+
         status.append({
             "domain": domain,
             "warmup_day": day,
             "daily_limit": limit,
             "emails_sent": sent,
             "remaining": max(0, limit - sent),
-            "at_capacity": sent >= limit,
+            "at_capacity": at_capacity,
+            "exceeded": exceeded,
+            "usage_percent": usage_pct,
+            "health": health,
         })
     return status

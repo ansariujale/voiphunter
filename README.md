@@ -69,8 +69,8 @@ python main.py --schedule
 
 **Never send cold emails from rozper.com** — use outreach domains:
 
-| Domain | Mailboxes | Emails/Day |
-|--------|-----------|------------|
+| Domain          | Mailboxes | Emails/Day |
+|---------------|-----------|------------|
 | getrozper.com | 2 | ~130 |
 | rozper.io | 2 | ~130 |
 | rozpervoip.com | 2 | ~130 |
@@ -110,6 +110,47 @@ Per domain setup:
 5. **FORM FILL** — Submit 1,000 website contact forms via Playwright
 6. **FOLLOW UP** — 4-email sequence over 14 days for non-responders
 7. **HAND OFF** — Hot leads notify Sajid instantly
+
+## Lead Scoring Logic
+
+Leads are scored using a **dual-mode system**: AI-based scoring when an API key is available (OpenRouter/Gemini/Claude), or rule-based fallback otherwise.
+
+### Rule-Based Scoring (Fallback)
+
+| Factor | Points | Details |
+|--------|--------|---------|
+| **Base score** | 30 | Every lead starts here |
+| **Lead type: VoIP Provider** | +30 | Highest value target |
+| **Lead type: UCaaS / CCaaS / ITSP** | +25 | Strong fit for voice routes |
+| **Lead type: Call Center / Reseller** | +20 | Good potential buyers |
+| **Lead type: MNO** | +15 | Mobile network operators |
+| **Lead type: MVNO** | +10 | Virtual operators |
+| **Has email** | +10 | Contactable lead |
+| **Decision-maker title** | +10 | CEO, CTO, VP, Director, Head, Manager |
+| **Priority country** | +10 | UAE, UK, US, Germany, Netherlands, Singapore |
+| **Has website** | +5 | Can be form-filled |
+| **Has phone** | +5 | Additional contact channel |
+
+**Max possible score: 100** (capped)
+
+### Score Thresholds
+
+| Score Range | Action |
+|-------------|--------|
+| **< 20** | Auto-skipped |
+| **20–39** | Low quality, skipped |
+| **40–69** | Qualified for outreach |
+| **70+** | High priority, fast-tracked |
+
+### AI-Based Scoring (Primary)
+
+When an AI provider is available, leads are evaluated 0–100 based on:
+1. Does their business need voice routes?
+2. Are they in a country where Rozper has strong coverage?
+3. Is the contact person a decision-maker?
+4. Company size and relevance to wholesale telecom
+
+The AI returns a score, reasoning, estimated company size, likely products, and priority level.
 
 ## Auto-Optimization Rules
 
