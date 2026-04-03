@@ -199,11 +199,34 @@
   .domain-modal-content .close-btn:hover{background:var(--surface3);color:var(--text);}
 
   /* Funnel */
-  .funnel-bar{display:flex;align-items:center;gap:12px;padding:6px 0;}
-  .funnel-fill{height:32px;border-radius:6px;display:flex;align-items:center;padding:0 12px;font-weight:700;font-size:11px;color:white;transition:width 0.8s ease;}
-  .funnel-label{font-size:12px;color:var(--text-muted);min-width:140px;}
-  .funnel-num{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:70px;text-align:right;}
-  .funnel-rate{font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;min-width:50px;text-align:right;}
+  .funnel-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;}
+  .funnel-chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+  .funnel-chart-title{font-size:15px;font-weight:600;color:var(--text);}
+
+  .funnel-chart-toggles{display:flex;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .funnel-toggle-btn{padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text-dim);transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;gap:5px;border-right:1px solid var(--border);}
+  .funnel-toggle-btn:last-child{border-right:none;}
+  .funnel-toggle-btn:hover{color:var(--text);background:var(--surface3);}
+  .funnel-toggle-btn.active{color:#fff;background:linear-gradient(135deg,#3b82f6,#a855f7);font-weight:600;}
+  .funnel-toggle-btn svg,.funnel-toggle-btn i{width:14px;height:14px;}
+
+  .funnel-chart-area{position:relative;height:360px;margin-bottom:16px;transition:opacity 0.3s ease;}
+  .funnel-chart-area.switching{opacity:0.3;}
+
+  .funnel-download-row{display:flex;justify-content:flex-end;gap:8px;padding-top:8px;border-top:1px solid var(--border);}
+  .funnel-download-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);transition:all 0.2s;}
+  .funnel-download-btn:hover{background:var(--surface3);color:var(--text);border-color:var(--border-light);}
+  .funnel-download-btn svg{width:14px;height:14px;}
+
+  @media(max-width:768px){
+    .funnel-chart-header{flex-direction:column;align-items:flex-start;}
+    .funnel-chart-toggles{flex-wrap:wrap;}
+    .funnel-chart-area{height:300px;}
+  }
+  @media(max-width:480px){
+    .funnel-chart-area{height:260px;}
+    .funnel-toggle-btn{padding:6px 10px;font-size:11px;}
+  }
 
   /* Scrollbar */
   ::-webkit-scrollbar{width:6px;height:6px;}
@@ -959,17 +982,27 @@
     <!-- ═══════ FUNNEL ═══════ -->
     <div class="page" id="page-funnel">
       <div class="page-title">Sales Funnel</div>
-      <div class="page-sub">Monthly conversion funnel — dual-channel (email + form) strategy</div>
+      <div class="page-sub">Conversion pipeline analytics — track leads from discovery to closed deals</div>
 
-      <div class="card">
-        <h3>Funnel Breakdown</h3>
-        <div style="max-width:700px;margin:12px auto;" id="funnelContainer"></div>
+      <!-- Interactive Chart -->
+      <div class="funnel-chart-card">
+        <div class="funnel-chart-header">
+          <div class="funnel-chart-title">Funnel Visualization</div>
+          <div class="funnel-chart-toggles" id="funnelToggles">
+            <button class="funnel-toggle-btn active" onclick="switchFunnelChart('bar')" data-type="bar"><i data-lucide="bar-chart-3"></i> Bar Chart</button>
+            <button class="funnel-toggle-btn" onclick="switchFunnelChart('pie')" data-type="pie"><i data-lucide="pie-chart"></i> Pie Chart</button>
+            <button class="funnel-toggle-btn" onclick="switchFunnelChart('doughnut')" data-type="doughnut"><i data-lucide="circle-dot"></i> Doughnut</button>
+            <button class="funnel-toggle-btn" onclick="switchFunnelChart('line')" data-type="line"><i data-lucide="trending-down"></i> Line Chart</button>
+          </div>
+        </div>
+        <div class="funnel-chart-area" id="funnelChartArea">
+          <canvas id="chartFunnel"></canvas>
+        </div>
+        <div class="funnel-download-row">
+          <button class="funnel-download-btn" onclick="downloadFunnelChart()"><i data-lucide="download"></i> Download Chart</button>
+        </div>
       </div>
 
-      <div class="card">
-        <h3>Funnel Conversion Chart</h3>
-        <div class="chart-container"><canvas id="chartFunnel"></canvas></div>
-      </div>
     </div>
 
     <!-- ═══════ PIPELINE ═══════ -->
@@ -2515,10 +2548,14 @@ async function renderSources(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FUNNEL
+// FUNNEL — Multi-Chart Interactive Visualization
 // ═══════════════════════════════════════════════════════════════
+let currentFunnelType = 'bar';
+let funnelDataCache = [];
+const FUNNEL_COLORS = ['#22c55e','#3b82f6','#a855f7','#06b6d4','#eab308','#f97316','#ec4899','#10b981'];
+const FUNNEL_COLORS_ALPHA = ['rgba(34,197,94,0.75)','rgba(59,130,246,0.75)','rgba(168,85,247,0.75)','rgba(6,182,212,0.75)','rgba(234,179,8,0.75)','rgba(249,115,22,0.75)','rgba(236,72,153,0.75)','rgba(16,185,129,0.75)'];
+
 function renderFunnel(){
-  // Use real data from allLeads
   const total = allLeads.length;
   const qualified = allLeads.filter(l=>(l.score||0) >= 40).length;
   const emailed = allLeads.filter(l=>l.email_sent).length;
@@ -2528,35 +2565,332 @@ function renderFunnel(){
   const interested = allLeads.filter(l=>l.interested).length;
   const closed = allLeads.filter(l=>l.closed).length;
 
-  const pct = (v) => total > 0 ? (v/total*100).toFixed(1)+'%' : '0%';
-  const widthPct = (v) => total > 0 ? Math.max(2, v/total*100) : 0;
-
-  const funnelData = [
-    {label:'Total Leads',value:total,pct:'100%',color:'linear-gradient(90deg,#22c55e,#06b6d4)',width:100},
-    {label:'Qualified (score 40+)',value:qualified,pct:pct(qualified),color:'linear-gradient(90deg,#3b82f6,#a855f7)',width:widthPct(qualified)},
-    {label:'Emailed',value:emailed,pct:pct(emailed),color:'linear-gradient(90deg,#a855f7,#ec4899)',width:widthPct(emailed)},
-    {label:'Form Filled',value:formFilled,pct:pct(formFilled),color:'linear-gradient(90deg,#06b6d4,#3b82f6)',width:widthPct(formFilled)},
-    {label:'Opened',value:opened,pct:emailed>0?(opened/emailed*100).toFixed(1)+'%':'0%',color:'linear-gradient(90deg,#eab308,#f97316)',width:widthPct(opened)},
-    {label:'Replied',value:replied,pct:emailed>0?(replied/emailed*100).toFixed(1)+'%':'0%',color:'linear-gradient(90deg,#f97316,#eab308)',width:widthPct(replied)},
-    {label:'Interested',value:interested,pct:pct(interested),color:'linear-gradient(90deg,#eab308,#22c55e)',width:widthPct(interested)},
-    {label:'Closed Deals',value:closed,pct:pct(closed),color:'linear-gradient(90deg,#22c55e,#10b981)',width:widthPct(closed)},
+  funnelDataCache = [
+    {label:'Total Leads',shortLabel:'Total',value:total},
+    {label:'Qualified (Score 40+)',shortLabel:'Qualified',value:qualified},
+    {label:'Emailed',shortLabel:'Emailed',value:emailed},
+    {label:'Forms Submitted',shortLabel:'Forms',value:formFilled},
+    {label:'Email Opened',shortLabel:'Opened',value:opened},
+    {label:'Replied',shortLabel:'Replied',value:replied},
+    {label:'Interested',shortLabel:'Interested',value:interested},
+    {label:'Closed Deals',shortLabel:'Closed',value:closed},
   ];
 
-  document.getElementById('funnelContainer').innerHTML = funnelData.map(f=>`
-    <div class="funnel-bar">
-      <div class="funnel-fill" style="background:${f.color};width:${f.width}%;">&nbsp;</div>
-      <div class="funnel-label">${f.label}</div>
-      <div class="funnel-num" style="color:var(--green)">${f.value.toLocaleString()}</div>
-      <div class="funnel-rate">${f.pct}</div>
-    </div>
-  `).join('');
+  // ── Chart ──
+  switchFunnelChart(currentFunnelType);
+  if(window.lucide) lucide.createIcons();
+}
 
-  if(charts.funnel) charts.funnel.destroy();
-  charts.funnel = new Chart(document.getElementById('chartFunnel'),{
-    type:'bar',
-    data:{labels:funnelData.map(f=>f.label),datasets:[{data:funnelData.map(f=>f.value),backgroundColor:['#22c55e','#3b82f6','#a855f7','#06b6d4','#eab308','#f97316','#eab308','#10b981'],borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{type:'logarithmic',ticks:{color:'#71717a'},grid:{color:'rgba(63,63,70,0.2)'}},y:{ticks:{color:'#a1a1aa',font:{size:10}},grid:{display:false}}}}
+function switchFunnelChart(type){
+  currentFunnelType = type;
+  document.querySelectorAll('.funnel-toggle-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.type === type);
   });
+
+  const area = document.getElementById('funnelChartArea');
+  area.classList.add('switching');
+
+  setTimeout(()=>{
+    if(charts.funnel) charts.funnel.destroy();
+    charts.funnel = null;
+
+    area.innerHTML = '<canvas id="chartFunnel"></canvas>';
+    const canvas = document.getElementById('chartFunnel');
+    const labels = funnelDataCache.map(f=>f.label);
+    const values = funnelDataCache.map(f=>f.value);
+    const shortLabels = funnelDataCache.map(f=>f.shortLabel);
+    const totalVal = funnelDataCache[0]?.value || 1;
+
+    const commonTooltip = {
+      backgroundColor:'rgba(17,17,19,0.95)',
+      titleColor:'#e8e8ed',
+      bodyColor:'#9898a4',
+      borderColor:'rgba(255,255,255,0.08)',
+      borderWidth:1,
+      cornerRadius:8,
+      padding:{top:10,bottom:10,left:14,right:14},
+      titleFont:{size:13,weight:'600'},
+      bodyFont:{size:12},
+      displayColors:true,
+      boxPadding:4,
+      callbacks:{
+        label:function(c){
+          const raw = c.raw !== undefined ? c.raw : 0;
+          const pct = totalVal > 0 ? (raw/totalVal*100).toFixed(1) : '0';
+          const name = c.label || c.dataset.label || '';
+          return ' ' + name + ':  ' + Number(raw).toLocaleString() + '  (' + pct + '%)';
+        }
+      }
+    };
+
+    let config;
+
+    if(type === 'bar'){
+      config = {
+        type:'bar',
+        data:{
+          labels:labels,
+          datasets:[{
+            label:'Leads',
+            data:values,
+            backgroundColor:FUNNEL_COLORS,
+            borderColor:FUNNEL_COLORS.map(c=>c),
+            borderWidth:0,
+            borderRadius:5,
+            borderSkipped:false,
+            barPercentage:0.7,
+            categoryPercentage:0.85
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          indexAxis:'y',
+          animation:{duration:800,easing:'easeOutQuart'},
+          layout:{padding:{right:60}},
+          plugins:{
+            legend:{display:false},
+            tooltip:commonTooltip,
+            // Data labels plugin (inline)
+            datalabels:false
+          },
+          scales:{
+            x:{
+              type:'logarithmic',
+              ticks:{color:'#6b6b78',font:{size:10}},
+              grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+              title:{display:true,text:'Number of Leads (log scale)',color:'#6b6b78',font:{size:10,weight:'400'}}
+            },
+            y:{
+              ticks:{color:'#a1a1aa',font:{size:11,weight:'500'},padding:8},
+              grid:{display:false}
+            }
+          }
+        },
+        plugins:[{
+          id:'barValueLabels',
+          afterDatasetsDraw(chart){
+            const {ctx:c} = chart;
+            chart.data.datasets.forEach((ds,di)=>{
+              chart.getDatasetMeta(di).data.forEach((bar,i)=>{
+                const val = ds.data[i];
+                const pct = totalVal > 0 ? (val/totalVal*100).toFixed(1) : '0';
+                c.save();
+                c.font = 'bold 11px JetBrains Mono, monospace';
+                c.fillStyle = '#a1a1aa';
+                c.textAlign = 'left';
+                c.textBaseline = 'middle';
+                c.fillText(val.toLocaleString() + ' (' + pct + '%)', bar.x + 8, bar.y);
+                c.restore();
+              });
+            });
+          }
+        }]
+      };
+
+    } else if(type === 'pie'){
+      config = {
+        type:'pie',
+        data:{
+          labels:labels,
+          datasets:[{
+            data:values,
+            backgroundColor:FUNNEL_COLORS_ALPHA,
+            borderColor:'rgba(26,26,31,0.8)',
+            borderWidth:2,
+            hoverOffset:14,
+            hoverBorderColor:'#fff',
+            hoverBorderWidth:2
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          animation:{animateRotate:true,animateScale:true,duration:900,easing:'easeOutQuart'},
+          layout:{padding:10},
+          plugins:{
+            legend:{
+              position:'right',
+              labels:{
+                color:'#a1a1aa',
+                font:{size:11,weight:'400'},
+                padding:12,
+                usePointStyle:true,
+                pointStyleWidth:10,
+                generateLabels:function(chart){
+                  const data = chart.data;
+                  return data.labels.map((label,i)=>{
+                    const val = data.datasets[0].data[i];
+                    const pct = totalVal > 0 ? (val/totalVal*100).toFixed(1) : '0';
+                    return {
+                      text: label + '  (' + pct + '%)',
+                      fillStyle: data.datasets[0].backgroundColor[i],
+                      strokeStyle: 'transparent',
+                      pointStyle:'circle',
+                      index:i
+                    };
+                  });
+                }
+              }
+            },
+            tooltip:commonTooltip
+          }
+        }
+      };
+
+    } else if(type === 'doughnut'){
+      config = {
+        type:'doughnut',
+        data:{
+          labels:labels,
+          datasets:[{
+            data:values,
+            backgroundColor:FUNNEL_COLORS_ALPHA,
+            borderColor:'rgba(26,26,31,0.8)',
+            borderWidth:2,
+            hoverOffset:12,
+            hoverBorderColor:'#fff',
+            hoverBorderWidth:2,
+            cutout:'58%',
+            spacing:2
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          animation:{animateRotate:true,animateScale:true,duration:900,easing:'easeOutQuart'},
+          layout:{padding:10},
+          plugins:{
+            legend:{
+              position:'right',
+              labels:{
+                color:'#a1a1aa',
+                font:{size:11,weight:'400'},
+                padding:12,
+                usePointStyle:true,
+                pointStyleWidth:10,
+                generateLabels:function(chart){
+                  const data = chart.data;
+                  return data.labels.map((label,i)=>{
+                    const val = data.datasets[0].data[i];
+                    const pct = totalVal > 0 ? (val/totalVal*100).toFixed(1) : '0';
+                    return {
+                      text: label + '  (' + pct + '%)',
+                      fillStyle: data.datasets[0].backgroundColor[i],
+                      strokeStyle: 'transparent',
+                      pointStyle:'circle',
+                      index:i
+                    };
+                  });
+                }
+              }
+            },
+            tooltip:commonTooltip
+          }
+        },
+        plugins:[{
+          id:'doughnutCenterText',
+          afterDraw(chart){
+            const {chartArea} = chart;
+            if(!chartArea) return;
+            const cx = (chartArea.left + chartArea.right) / 2;
+            const cy = (chartArea.top + chartArea.bottom) / 2;
+            const c = chart.ctx;
+            c.save();
+            c.font = 'bold 26px JetBrains Mono, monospace';
+            c.fillStyle = '#e8e8ed';
+            c.textAlign = 'center';
+            c.textBaseline = 'middle';
+            c.fillText(totalVal.toLocaleString(), cx, cy - 8);
+            c.font = '500 11px -apple-system, BlinkMacSystemFont, sans-serif';
+            c.fillStyle = '#6b6b78';
+            c.fillText('Total Leads', cx, cy + 16);
+            c.restore();
+          }
+        }]
+      };
+
+    } else if(type === 'line'){
+      config = {
+        type:'line',
+        data:{
+          labels:shortLabels,
+          datasets:[{
+            label:'Funnel Flow',
+            data:values,
+            borderColor:'#a855f7',
+            backgroundColor:function(context){
+              const chart = context.chart;
+              const {ctx:c,chartArea} = chart;
+              if(!chartArea) return 'rgba(168,85,247,0.08)';
+              const gradient = c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
+              gradient.addColorStop(0,'rgba(168,85,247,0.18)');
+              gradient.addColorStop(1,'rgba(168,85,247,0.01)');
+              return gradient;
+            },
+            fill:true,
+            tension:0.35,
+            pointRadius:6,
+            pointHoverRadius:9,
+            pointBackgroundColor:FUNNEL_COLORS,
+            pointBorderColor:'#1a1a1f',
+            pointBorderWidth:2,
+            borderWidth:3
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          animation:{duration:1000,easing:'easeOutQuart'},
+          interaction:{mode:'index',intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:commonTooltip
+          },
+          scales:{
+            x:{
+              ticks:{color:'#a1a1aa',font:{size:11},padding:6},
+              grid:{color:'rgba(255,255,255,0.04)',drawBorder:false}
+            },
+            y:{
+              type:'logarithmic',
+              ticks:{color:'#6b6b78',font:{size:10}},
+              grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
+              title:{display:true,text:'Leads (log scale)',color:'#6b6b78',font:{size:10,weight:'400'}}
+            }
+          }
+        },
+        plugins:[{
+          id:'linePointLabels',
+          afterDatasetsDraw(chart){
+            const meta = chart.getDatasetMeta(0);
+            const c = chart.ctx;
+            meta.data.forEach((point,i)=>{
+              const val = chart.data.datasets[0].data[i];
+              c.save();
+              c.font = 'bold 10px JetBrains Mono, monospace';
+              c.fillStyle = FUNNEL_COLORS[i];
+              c.textAlign = 'center';
+              c.textBaseline = 'bottom';
+              c.fillText(val.toLocaleString(), point.x, point.y - 10);
+              c.restore();
+            });
+          }
+        }]
+      };
+    }
+
+    charts.funnel = new Chart(canvas, config);
+    area.classList.remove('switching');
+  }, 180);
+}
+
+function downloadFunnelChart(){
+  if(!charts.funnel) return;
+  const link = document.createElement('a');
+  link.download = 'funnel_' + currentFunnelType + '_' + new Date().toISOString().slice(0,10) + '.png';
+  link.href = charts.funnel.toBase64Image('image/png', 1);
+  link.click();
 }
 
 // ═══════════════════════════════════════════════════════════════
