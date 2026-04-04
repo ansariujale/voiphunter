@@ -557,7 +557,7 @@ def get_form_outreach_counts() -> dict:
             "no_form": no_form,
             "processing": processing,
             "pending": pending,
-            "total": success + failed + processing,
+            "total": success + failed,  # total = success + all failed (including no_form)
         }
     except Exception as e:
         logger.error(f"Error getting form outreach counts: {e}")

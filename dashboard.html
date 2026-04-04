@@ -238,34 +238,86 @@
   .domain-modal-content .close-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px;}
   .domain-modal-content .close-btn:hover{background:var(--surface3);color:var(--text);}
 
-  /* Funnel */
-  .funnel-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;margin-bottom:24px;}
-  .funnel-chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
-  .funnel-chart-title{font-size:15px;font-weight:600;color:var(--text);}
+  /* Funnel — Category Tabs */
+  .funnel-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+  .funnel-tab{display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:12px;cursor:pointer;border:2px solid var(--border);background:var(--surface);transition:all 0.25s ease;position:relative;overflow:hidden;text-align:left;}
+  .funnel-tab::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity 0.25s;}
+  .funnel-tab:hover{border-color:var(--border-light);transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.12);}
+  .ftab-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.25s;}
+  .ftab-icon [data-lucide]{width:20px;height:20px;stroke-width:1.8;}
+  .ftab-text{flex:1;min-width:0;}
+  .ftab-label{display:block;font-size:13.5px;font-weight:600;color:var(--text);line-height:1.2;}
+  .ftab-desc{display:block;font-size:11px;color:var(--text-dim);margin-top:2px;font-weight:400;}
+  .ftab-count{font-size:16px;font-weight:700;color:var(--text);padding:4px 12px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);flex-shrink:0;min-width:42px;text-align:center;transition:all 0.25s;}
+  /* Overall — emerald */
+  .ftab-overall .ftab-icon{background:rgba(16,185,129,0.12);color:#10b981;}
+  .ftab-overall.active{border-color:#10b981;background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(16,185,129,0.02));}
+  .ftab-overall.active .ftab-count{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.3);color:#10b981;}
+  .ftab-overall.active .ftab-icon{background:#10b981;color:#fff;box-shadow:0 0 16px rgba(16,185,129,0.35);}
+  /* Forms — violet */
+  .ftab-forms .ftab-icon{background:rgba(139,92,246,0.12);color:#8b5cf6;}
+  .ftab-forms.active{border-color:#8b5cf6;background:linear-gradient(135deg,rgba(139,92,246,0.08),rgba(139,92,246,0.02));}
+  .ftab-forms.active .ftab-count{background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.3);color:#8b5cf6;}
+  .ftab-forms.active .ftab-icon{background:#8b5cf6;color:#fff;box-shadow:0 0 16px rgba(139,92,246,0.35);}
+  /* Emails — blue */
+  .ftab-emails .ftab-icon{background:rgba(59,130,246,0.12);color:#3b82f6;}
+  .ftab-emails.active{border-color:#3b82f6;background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(59,130,246,0.02));}
+  .ftab-emails.active .ftab-count{background:rgba(59,130,246,0.15);border-color:rgba(59,130,246,0.3);color:#3b82f6;}
+  .ftab-emails.active .ftab-icon{background:#3b82f6;color:#fff;box-shadow:0 0 16px rgba(59,130,246,0.35);}
 
-  .funnel-chart-toggles{display:flex;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-  .funnel-toggle-btn{padding:8px 16px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text-dim);transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;gap:5px;border-right:1px solid var(--border);}
-  .funnel-toggle-btn:last-child{border-right:none;}
-  .funnel-toggle-btn:hover{color:var(--text);background:var(--surface3);}
-  .funnel-toggle-btn.active{color:#fff;background:linear-gradient(135deg,#3b82f6,#a855f7);font-weight:600;}
-  .funnel-toggle-btn svg,.funnel-toggle-btn i{width:14px;height:14px;}
+  /* Chart card */
+  .funnel-chart-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-bottom:24px;animation:fadeInUp 0.35s ease-out;}
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  .funnel-chart-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px;}
+  .funnel-chart-title{font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px;}
+  .funnel-chart-subtoggle{display:flex;gap:0;background:var(--surface2);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .funnel-sub-btn{padding:7px 14px;font-size:11.5px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text-dim);transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;gap:5px;border-right:1px solid var(--border);}
+  .funnel-sub-btn:last-child{border-right:none;}
+  .funnel-sub-btn:hover{color:var(--text);background:var(--surface3);}
+  .funnel-sub-btn.active{color:#fff;font-weight:600;}
+  .funnel-sub-btn.active.sub-green{background:linear-gradient(135deg,#10b981,#059669);}
+  .funnel-sub-btn.active.sub-violet{background:linear-gradient(135deg,#8b5cf6,#7c3aed);}
+  .funnel-sub-btn.active.sub-blue{background:linear-gradient(135deg,#3b82f6,#2563eb);}
+  .funnel-sub-btn svg,.funnel-sub-btn i{width:13px;height:13px;}
 
-  .funnel-chart-area{position:relative;height:360px;margin-bottom:16px;transition:opacity 0.3s ease;}
+  .funnel-chart-area{position:relative;height:380px;margin-bottom:16px;transition:opacity 0.3s ease;}
   .funnel-chart-area.switching{opacity:0.3;}
 
-  .funnel-download-row{display:flex;justify-content:flex-end;gap:8px;padding-top:8px;border-top:1px solid var(--border);}
+  .funnel-download-row{display:flex;justify-content:flex-end;gap:8px;padding-top:10px;border-top:1px solid var(--border);}
   .funnel-download-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface2);color:var(--text-muted);transition:all 0.2s;}
   .funnel-download-btn:hover{background:var(--surface3);color:var(--text);border-color:var(--border-light);}
   .funnel-download-btn svg{width:14px;height:14px;}
 
+  /* Summary stats row */
+  .funnel-summary-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px;}
+  .funnel-summary-stat{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;text-align:center;}
+  .funnel-summary-stat .fss-label{font-size:10.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;font-weight:500;margin-bottom:5px;}
+  .funnel-summary-stat .fss-value{font-size:22px;font-weight:700;color:var(--text);line-height:1;}
+  .funnel-summary-stat .fss-sub{font-size:10.5px;color:var(--text-dim);margin-top:4px;}
+
+  /* Detail grids */
+  .funnel-detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:8px;margin-bottom:12px;}
+  .funnel-detail-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;transition:all 0.15s;}
+  .funnel-detail-item:hover{background:var(--surface3);transform:translateY(-1px);}
+  .funnel-detail-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px rgba(0,0,0,0.3);}
+  .funnel-detail-info{flex:1;min-width:0;}
+  .funnel-detail-label{font-size:11px;color:var(--text-dim);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .funnel-detail-value{font-size:15px;font-weight:700;color:var(--text);line-height:1.2;}
+  .funnel-detail-pct{font-size:10.5px;color:var(--text-dim);font-weight:500;}
+  .funnel-detail-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .funnel-detail-icon [data-lucide]{width:15px;height:15px;}
+  .funnel-detail-badge{font-size:11.5px;font-weight:600;margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;}
+
   @media(max-width:768px){
+    .funnel-tabs{grid-template-columns:1fr;}
     .funnel-chart-header{flex-direction:column;align-items:flex-start;}
-    .funnel-chart-toggles{flex-wrap:wrap;}
     .funnel-chart-area{height:300px;}
+    .funnel-summary-stats{grid-template-columns:repeat(2,1fr);}
   }
   @media(max-width:480px){
     .funnel-chart-area{height:260px;}
-    .funnel-toggle-btn{padding:6px 10px;font-size:11px;}
+    .funnel-sub-btn{padding:5px 10px;font-size:10px;}
+    .funnel-detail-grid{grid-template-columns:1fr;}
   }
 
   /* Scrollbar */
@@ -886,6 +938,7 @@
         <button id="btnCleanUrls" onclick="cleanFormUrls()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-weight:600;font-size:11px;cursor:pointer;letter-spacing:0.3px;" title="Strip all endpoints from pending URLs to keep base domain only">Clean URLs</button>
         <button id="btnStartFormOutreach" onclick="startFormOutreach()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--green);color:#000;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Start Batch</button>
         <button id="btnStopFormOutreach" onclick="stopFormOutreach()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--red);color:#fff;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;display:none;">Stop</button>
+        <button id="btnRestartFormOutreach" onclick="restartFormOutreach()" style="padding:8px 20px;border-radius:8px;border:none;background:var(--red);color:#fff;font-weight:700;font-size:12px;cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;">Restart</button>
         <div id="formOutreachStatus" style="font-size:11px;color:var(--text-dim);margin-left:auto;"></div>
       </div>
 
@@ -1065,20 +1118,35 @@
       <div class="page-title">Sales Funnel</div>
       <div class="page-sub">Conversion pipeline analytics — track leads from discovery to closed deals</div>
 
-      <!-- Interactive Chart -->
+      <!-- Category Tabs -->
+      <div class="funnel-tabs" id="funnelTabs">
+        <button class="funnel-tab ftab-overall active" onclick="switchFunnelCategory('overall')" data-cat="overall">
+          <span class="ftab-icon"><i data-lucide="layout-dashboard"></i></span>
+          <span class="ftab-text"><span class="ftab-label">Overall Pipeline</span><span class="ftab-desc">Full lead journey overview</span></span>
+          <span class="ftab-count" id="ftabCountOverall">0</span>
+        </button>
+        <button class="funnel-tab ftab-forms" onclick="switchFunnelCategory('forms')" data-cat="forms">
+          <span class="ftab-icon"><i data-lucide="file-text"></i></span>
+          <span class="ftab-text"><span class="ftab-label">Form Submissions</span><span class="ftab-desc">Website contact forms</span></span>
+          <span class="ftab-count" id="ftabCountForms">0</span>
+        </button>
+        <button class="funnel-tab ftab-emails" onclick="switchFunnelCategory('emails')" data-cat="emails">
+          <span class="ftab-icon"><i data-lucide="mail"></i></span>
+          <span class="ftab-text"><span class="ftab-label">Email Outreach</span><span class="ftab-desc">Cold email performance</span></span>
+          <span class="ftab-count" id="ftabCountEmails">0</span>
+        </button>
+      </div>
+
+      <!-- Chart Card (expands below selected tab) -->
       <div class="funnel-chart-card">
         <div class="funnel-chart-header">
-          <div class="funnel-chart-title">Funnel Visualization</div>
-          <div class="funnel-chart-toggles" id="funnelToggles">
-            <button class="funnel-toggle-btn active" onclick="switchFunnelChart('bar')" data-type="bar"><i data-lucide="bar-chart-3"></i> Bar Chart</button>
-            <button class="funnel-toggle-btn" onclick="switchFunnelChart('pie')" data-type="pie"><i data-lucide="pie-chart"></i> Pie Chart</button>
-            <button class="funnel-toggle-btn" onclick="switchFunnelChart('doughnut')" data-type="doughnut"><i data-lucide="circle-dot"></i> Doughnut</button>
-            <button class="funnel-toggle-btn" onclick="switchFunnelChart('line')" data-type="line"><i data-lucide="trending-down"></i> Line Chart</button>
-          </div>
+          <div class="funnel-chart-title" id="funnelChartTitle">Overall Pipeline</div>
+          <div class="funnel-chart-subtoggle" id="funnelSubToggle"></div>
         </div>
         <div class="funnel-chart-area" id="funnelChartArea">
           <canvas id="chartFunnel"></canvas>
         </div>
+        <div id="funnelDetailSection"></div>
         <div class="funnel-download-row">
           <button class="funnel-download-btn" onclick="downloadFunnelChart()"><i data-lucide="download"></i> Download Chart</button>
         </div>
@@ -1175,6 +1243,10 @@
           <div class="setting-group">
             <div class="setting-label">Daily Lead Target</div>
             <input class="input" style="width:100%" value="1000" type="number" id="settingLeadTarget">
+          </div>
+          <div class="setting-group">
+            <div class="setting-label">Search Keywords (comma-separated)</div>
+            <input class="input" style="width:100%" value="wholesale voice, VoIP provider, voice termination, SIP trunking provider, call center, telecom carrier, wholesale routes, CLI routes, international voice, UCaaS provider" id="settingKeywords">
           </div>
           <div class="setting-group">
             <div class="setting-label">Target Countries (comma-separated)</div>
@@ -2489,9 +2561,11 @@ async function renderFormsPage(){
     // 1. Get REAL total counts from database (not last batch)
     const counts = await api('/api/form-outreach/counts');
     if(counts){
-      document.getElementById('formSubmitted').textContent = counts.success || 0;
-      document.getElementById('formFailed').textContent = (counts.failed || 0) + (counts.no_form || 0);
-      document.getElementById('formTotal').textContent = counts.total || 0;
+      const displaySuccess = counts.success || 0;
+      const displayFailed = (counts.failed || 0) + (counts.no_form || 0);
+      document.getElementById('formSubmitted').textContent = displaySuccess;
+      document.getElementById('formFailed').textContent = displayFailed;
+      document.getElementById('formTotal').textContent = displaySuccess + displayFailed;
     }
 
     // 2. Get running state for buttons/status text
@@ -2499,21 +2573,37 @@ async function renderFormsPage(){
     if(status){
       const startBtn = document.getElementById('btnStartFormOutreach');
       const stopBtn = document.getElementById('btnStopFormOutreach');
+      const restartBtn = document.getElementById('btnRestartFormOutreach');
       const statusEl = document.getElementById('formOutreachStatus');
       if(status.running){
         startBtn.style.display = 'none';
-        stopBtn.style.display = '';
-        statusEl.innerHTML = '<span style="color:var(--green);">Running...</span> ' +
-          (status.current_lead ? `Processing: ${status.current_lead}` : 'Processing batch...');
+        if(status.restarting){
+          // Restart running — show Stop in place of Restart
+          restartBtn.style.display = 'none';
+          stopBtn.style.display = '';
+          const remaining = counts ? (counts.processing || 0) : 0;
+          statusEl.innerHTML = '<span style="color:var(--red);">Restarting...</span> ' +
+            remaining + ' forms remaining' +
+            (status.current_lead ? ' — ' + status.current_lead : '');
+        } else {
+          // Normal batch running
+          restartBtn.style.display = 'none';
+          stopBtn.style.display = '';
+          statusEl.innerHTML = '<span style="color:var(--green);">Running...</span> ' +
+            (status.current_lead ? `Processing: ${status.current_lead}` : 'Processing batch...');
+        }
         if(!formPollInterval) formPollInterval = setInterval(renderFormsPage, 3000);
       } else {
         startBtn.style.display = '';
         stopBtn.style.display = 'none';
+        restartBtn.style.display = '';
+        const hasProcessing = counts && (counts.processing || 0) > 0;
         if(status.finished_at){
           const fin = new Date(status.finished_at);
-          statusEl.textContent = `Last run: ${fin.toLocaleTimeString()} — ${status.success} success, ${status.failed} failed`;
+          statusEl.textContent = `Last run: ${fin.toLocaleTimeString()} — ${status.success} success, ${status.failed} failed` +
+            (hasProcessing ? ` (${counts.processing} stuck)` : '');
         } else {
-          statusEl.textContent = 'Ready';
+          statusEl.textContent = hasProcessing ? `${counts.processing} forms stuck in processing` : 'Ready';
         }
         if(formPollInterval){ clearInterval(formPollInterval); formPollInterval = null; }
       }
@@ -2573,6 +2663,15 @@ async function startFormOutreach(){
 
 async function stopFormOutreach(){
   await api('/api/form-outreach/stop', 'POST');
+  renderFormsPage();
+}
+
+async function restartFormOutreach(){
+  const res = await api('/api/form-outreach/restart', 'POST');
+  if(res && res.error){
+    document.getElementById('formOutreachStatus').innerHTML = '<span style="color:var(--red);">' + res.error + '</span>';
+    return;
+  }
   renderFormsPage();
 }
 
@@ -2849,348 +2948,318 @@ async function renderSources(){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FUNNEL — Multi-Chart Interactive Visualization
+// FUNNEL — Category Tabs: Overall | Forms | Emails
+// Each category has sub-toggles for chart type (bar/line or pie/doughnut)
 // ═══════════════════════════════════════════════════════════════
-let currentFunnelType = 'bar';
-let funnelDataCache = [];
-const FUNNEL_COLORS = ['#22c55e','#3b82f6','#a855f7','#06b6d4','#eab308','#f97316','#ec4899','#10b981'];
-const FUNNEL_COLORS_ALPHA = ['rgba(34,197,94,0.75)','rgba(59,130,246,0.75)','rgba(168,85,247,0.75)','rgba(6,182,212,0.75)','rgba(234,179,8,0.75)','rgba(249,115,22,0.75)','rgba(236,72,153,0.75)','rgba(16,185,129,0.75)'];
+let currentFunnelCat = 'overall';
+let currentFunnelSub = {overall:'bar', forms:'pie', emails:'doughnut'};
+let funnelDataCache = {};
+const FUNNEL_COLORS = ['#10b981','#3b82f6','#8b5cf6','#06b6d4','#f59e0b','#ef4444','#ec4899','#14b8a6'];
+const FUNNEL_COLORS_A = ['rgba(16,185,129,0.82)','rgba(59,130,246,0.82)','rgba(139,92,246,0.82)','rgba(6,182,212,0.82)','rgba(245,158,11,0.82)','rgba(239,68,68,0.82)','rgba(236,72,153,0.82)','rgba(20,184,166,0.82)'];
+const FORM_COLORS = ['#a855f7','#f97316','#ef4444','#6b7280'];
+const FORM_COLORS_A = ['rgba(168,85,247,0.85)','rgba(249,115,22,0.85)','rgba(239,68,68,0.85)','rgba(107,114,128,0.6)'];
+const EMAIL_COLORS = ['#3b82f6','#22d3ee','#10b981','#f59e0b','#ec4899','#ef4444'];
+const EMAIL_COLORS_A = ['rgba(59,130,246,0.85)','rgba(34,211,238,0.85)','rgba(16,185,129,0.85)','rgba(245,158,11,0.85)','rgba(236,72,153,0.85)','rgba(239,68,68,0.85)'];
 
-function renderFunnel(){
-  const total = allLeads.length;
-  const qualified = allLeads.filter(l=>(l.score||0) >= 40).length;
-  const emailed = allLeads.filter(l=>l.email_sent).length;
-  const formFilled = allLeads.filter(l=>l.form_filled).length;
-  const opened = allLeads.filter(l=>l.email_opened).length;
-  const replied = allLeads.filter(l=>l.replied).length;
-  const interested = allLeads.filter(l=>l.interested).length;
-  const closed = allLeads.filter(l=>l.closed).length;
+function _funnelTooltip(totalVal){
+  return {
+    backgroundColor:'rgba(15,15,18,0.96)',titleColor:'#f0f0f4',bodyColor:'#a0a0ae',
+    borderColor:'rgba(255,255,255,0.07)',borderWidth:1,cornerRadius:10,
+    padding:{top:11,bottom:11,left:15,right:15},titleFont:{size:13,weight:'600'},bodyFont:{size:12},
+    displayColors:true,boxPadding:5,
+    callbacks:{label:function(c){
+      const v = c.raw !== undefined ? c.raw : 0;
+      const p = totalVal > 0 ? (v/totalVal*100).toFixed(1) : '0';
+      return ' '+(c.label||c.dataset.label||'')+':  '+Number(v).toLocaleString()+'  ('+p+'%)';
+    }}
+  };
+}
+function _css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim(); }
 
-  funnelDataCache = [
-    {label:'Total Leads',shortLabel:'Total',value:total},
-    {label:'Qualified (Score 40+)',shortLabel:'Qualified',value:qualified},
-    {label:'Emailed',shortLabel:'Emailed',value:emailed},
-    {label:'Forms Submitted',shortLabel:'Forms',value:formFilled},
-    {label:'Email Opened',shortLabel:'Opened',value:opened},
-    {label:'Replied',shortLabel:'Replied',value:replied},
-    {label:'Interested',shortLabel:'Interested',value:interested},
-    {label:'Closed Deals',shortLabel:'Closed',value:closed},
-  ];
+async function renderFunnel(){
+  // Fetch real-time data from APIs when server connected
+  let total=0, qualified=0, emailed=0, formFilled=0, opened=0, replied=0, interested=0, closed=0, revenue=0;
+  let formSuccess=0, formFailed=0, formNoForm=0, formPending=0, formProcessing=0;
 
-  // ── Chart ──
-  switchFunnelChart(currentFunnelType);
+  if(serverConnected){
+    // Get real funnel counts from DB
+    const funnel = await api('/api/funnel');
+    if(funnel){
+      total = funnel.total || 0;
+      qualified = funnel.qualified || 0;
+      emailed = funnel.emailed || 0;
+      formFilled = funnel.form_filled || 0;
+      opened = funnel.opened || 0;
+      replied = funnel.replied || 0;
+      interested = funnel.interested || 0;
+      closed = funnel.closed || 0;
+      revenue = funnel.mrr || 0;
+    }
+    // Get real form counts from DB
+    const formCounts = await api('/api/form-outreach/counts');
+    if(formCounts){
+      formSuccess = formCounts.success || 0;
+      formFailed = formCounts.failed || 0;
+      formNoForm = formCounts.no_form || 0;
+      formPending = formCounts.pending || 0;
+      formProcessing = formCounts.processing || 0;
+    }
+  } else {
+    // Fallback to allLeads
+    total = allLeads.length;
+    qualified = allLeads.filter(l=>(l.score||0)>=40).length;
+    emailed = allLeads.filter(l=>l.email_sent).length;
+    formFilled = allLeads.filter(l=>l.form_filled).length;
+    opened = allLeads.filter(l=>l.email_opened).length;
+    replied = allLeads.filter(l=>l.replied).length;
+    interested = allLeads.filter(l=>l.interested).length;
+    closed = allLeads.filter(l=>l.closed).length;
+    revenue = allLeads.reduce((s,l)=>s+(l.revenue_monthly||0),0);
+    formSuccess = allLeads.filter(l=>l.form_submission_status==='success').length;
+    formFailed = allLeads.filter(l=>l.form_submission_status==='failed'&&!(l.form_error_message||'').includes('No contact form')).length;
+    formNoForm = allLeads.filter(l=>l.form_submission_status==='failed'&&(l.form_error_message||'').includes('No contact form')).length;
+    formPending = allLeads.filter(l=>l.form_submission_status==='pending'||(!l.form_submission_status&&l.website_url)).length;
+    formProcessing = allLeads.filter(l=>l.form_submission_status==='processing').length;
+  }
+
+  const formTotal = formSuccess + formFailed + formNoForm + formProcessing;
+  const emailNotOpened = Math.max(0, emailed - opened);
+  const emailOpenedNotReplied = Math.max(0, opened - replied);
+  const emailRepliedNotInterested = Math.max(0, replied - interested);
+  const emailInterestedNotClosed = Math.max(0, interested - closed);
+  const convRate = total>0?(closed/total*100).toFixed(1):'0';
+  const replyRate = emailed>0?(replied/emailed*100).toFixed(1):'0';
+  const openRate = emailed>0?(opened/emailed*100).toFixed(1):'0';
+
+  funnelDataCache = {
+    summary:[
+      {label:'Total Leads',short:'Total',value:total},
+      {label:'Qualified',short:'Qualified',value:qualified},
+      {label:'Emailed',short:'Emailed',value:emailed},
+      {label:'Forms Filled',short:'Forms',value:formFilled},
+      {label:'Opened',short:'Opened',value:opened},
+      {label:'Replied',short:'Replied',value:replied},
+      {label:'Interested',short:'Interested',value:interested},
+      {label:'Closed',short:'Closed',value:closed},
+    ],
+    form:{labels:['Submitted','Failed','No Form Found','Processing'],values:[formSuccess,formFailed,formNoForm,formProcessing],total:formTotal},
+    email:{labels:['Sent (Unopened)','Opened','Replied','Interested','Closed','Bounced/Failed'],values:[emailNotOpened,emailOpenedNotReplied,emailRepliedNotInterested,emailInterestedNotClosed,closed,0],total:emailed},
+    stats:{total,qualified,emailed,formFilled,opened,replied,interested,closed,revenue,convRate,replyRate,openRate,formTotal}
+  };
+
+  // Update tab counts
+  document.getElementById('ftabCountOverall').textContent = total.toLocaleString();
+  document.getElementById('ftabCountForms').textContent = formTotal.toLocaleString();
+  document.getElementById('ftabCountEmails').textContent = emailed.toLocaleString();
+
+  switchFunnelCategory(currentFunnelCat);
   if(window.lucide) lucide.createIcons();
 }
 
-function switchFunnelChart(type){
-  currentFunnelType = type;
-  document.querySelectorAll('.funnel-toggle-btn').forEach(btn=>{
-    btn.classList.toggle('active', btn.dataset.type === type);
+/* ═══ Switch main category tab ═══ */
+function switchFunnelCategory(cat){
+  currentFunnelCat = cat;
+  document.querySelectorAll('#funnelTabs .funnel-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.cat === cat);
   });
 
+  // Build sub-toggle buttons
+  const subEl = document.getElementById('funnelSubToggle');
+  const titleEl = document.getElementById('funnelChartTitle');
+
+  if(cat === 'overall'){
+    titleEl.innerHTML = '<i data-lucide="layout-dashboard" style="width:16px;height:16px;color:#10b981"></i> Overall Pipeline';
+    subEl.innerHTML = `<button class="funnel-sub-btn sub-green ${currentFunnelSub.overall==='bar'?'active':''}" onclick="switchFunnelSub('overall','bar')" data-sub="bar"><i data-lucide="bar-chart-3"></i> Bar Chart</button><button class="funnel-sub-btn sub-green ${currentFunnelSub.overall==='line'?'active':''}" onclick="switchFunnelSub('overall','line')" data-sub="line"><i data-lucide="trending-up"></i> Line Chart</button>`;
+  } else if(cat === 'forms'){
+    titleEl.innerHTML = '<i data-lucide="file-text" style="width:16px;height:16px;color:#8b5cf6"></i> Form Submissions';
+    subEl.innerHTML = `<button class="funnel-sub-btn sub-violet ${currentFunnelSub.forms==='pie'?'active':''}" onclick="switchFunnelSub('forms','pie')" data-sub="pie"><i data-lucide="pie-chart"></i> Pie Chart</button><button class="funnel-sub-btn sub-violet ${currentFunnelSub.forms==='bar'?'active':''}" onclick="switchFunnelSub('forms','bar')" data-sub="bar"><i data-lucide="bar-chart-3"></i> Bar Chart</button>`;
+  } else if(cat === 'emails'){
+    titleEl.innerHTML = '<i data-lucide="mail" style="width:16px;height:16px;color:#3b82f6"></i> Email Outreach';
+    subEl.innerHTML = `<button class="funnel-sub-btn sub-blue ${currentFunnelSub.emails==='doughnut'?'active':''}" onclick="switchFunnelSub('emails','doughnut')" data-sub="doughnut"><i data-lucide="circle-dot"></i> Doughnut</button><button class="funnel-sub-btn sub-blue ${currentFunnelSub.emails==='line'?'active':''}" onclick="switchFunnelSub('emails','line')" data-sub="line"><i data-lucide="trending-up"></i> Line Chart</button>`;
+  }
+
+  _renderFunnelChart();
+  if(window.lucide) lucide.createIcons();
+}
+
+/* ═══ Switch sub chart type within a category ═══ */
+function switchFunnelSub(cat, sub){
+  currentFunnelSub[cat] = sub;
+  document.querySelectorAll('#funnelSubToggle .funnel-sub-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sub === sub);
+  });
+  _renderFunnelChart();
+}
+
+/* ═══ Render the active chart ═══ */
+function _renderFunnelChart(){
   const area = document.getElementById('funnelChartArea');
+  const detail = document.getElementById('funnelDetailSection');
   area.classList.add('switching');
 
   setTimeout(()=>{
     if(charts.funnel) charts.funnel.destroy();
     charts.funnel = null;
-
     area.innerHTML = '<canvas id="chartFunnel"></canvas>';
     const canvas = document.getElementById('chartFunnel');
-    const labels = funnelDataCache.map(f=>f.label);
-    const values = funnelDataCache.map(f=>f.value);
-    const shortLabels = funnelDataCache.map(f=>f.shortLabel);
-    const totalVal = funnelDataCache[0]?.value || 1;
-
-    const commonTooltip = {
-      backgroundColor:'rgba(17,17,19,0.95)',
-      titleColor:'#e8e8ed',
-      bodyColor:'#9898a4',
-      borderColor:'rgba(255,255,255,0.08)',
-      borderWidth:1,
-      cornerRadius:8,
-      padding:{top:10,bottom:10,left:14,right:14},
-      titleFont:{size:13,weight:'600'},
-      bodyFont:{size:12},
-      displayColors:true,
-      boxPadding:4,
-      callbacks:{
-        label:function(c){
-          const raw = c.raw !== undefined ? c.raw : 0;
-          const pct = totalVal > 0 ? (raw/totalVal*100).toFixed(1) : '0';
-          const name = c.label || c.dataset.label || '';
-          return ' ' + name + ':  ' + Number(raw).toLocaleString() + '  (' + pct + '%)';
-        }
-      }
-    };
-
+    const d = funnelDataCache;
+    const st = d.stats || {};
+    const cat = currentFunnelCat;
+    const sub = currentFunnelSub[cat];
     let config;
 
-    if(type === 'bar'){
-      config = {
-        type:'bar',
-        data:{
-          labels:labels,
-          datasets:[{
-            label:'Leads',
-            data:values,
-            backgroundColor:FUNNEL_COLORS,
-            borderColor:FUNNEL_COLORS.map(c=>c),
-            borderWidth:0,
-            borderRadius:5,
-            borderSkipped:false,
-            barPercentage:0.7,
-            categoryPercentage:0.85
-          }]
-        },
-        options:{
-          responsive:true,
-          maintainAspectRatio:false,
-          indexAxis:'y',
-          animation:{duration:800,easing:'easeOutQuart'},
-          layout:{padding:{right:60}},
-          plugins:{
-            legend:{display:false},
-            tooltip:commonTooltip,
-            // Data labels plugin (inline)
-            datalabels:false
-          },
-          scales:{
-            x:{
-              type:'logarithmic',
-              ticks:{color:'#6b6b78',font:{size:10}},
-              grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
-              title:{display:true,text:'Number of Leads (log scale)',color:'#6b6b78',font:{size:10,weight:'400'}}
-            },
-            y:{
-              ticks:{color:'#a1a1aa',font:{size:11,weight:'500'},padding:8},
-              grid:{display:false}
+    /* ════════════════════════════════════════════════
+       OVERALL — Bar or Line
+    ════════════════════════════════════════════════ */
+    if(cat === 'overall'){
+      const labels = d.summary.map(s=>sub==='bar'?s.label:s.short);
+      const values = d.summary.map(s=>s.value);
+      const totalVal = values[0] || 1;
+
+      if(sub === 'bar'){
+        config = {
+          type:'bar',
+          data:{labels,datasets:[{label:'Leads',data:values,backgroundColor:FUNNEL_COLORS_A,borderColor:FUNNEL_COLORS,borderWidth:0,borderRadius:6,borderSkipped:false,barPercentage:0.72,categoryPercentage:0.88}]},
+          options:{
+            responsive:true,maintainAspectRatio:false,indexAxis:'y',
+            animation:{duration:850,easing:'easeOutQuart'},
+            layout:{padding:{right:80}},
+            plugins:{legend:{display:false},tooltip:_funnelTooltip(totalVal)},
+            scales:{
+              x:{type:'logarithmic',ticks:{color:_css('--text-dim'),font:{size:10}},grid:{color:_css('--chart-grid'),drawBorder:false},title:{display:true,text:'Count (log scale)',color:_css('--text-dim'),font:{size:10}}},
+              y:{ticks:{color:_css('--text-muted'),font:{size:11,weight:'500'},padding:8},grid:{display:false}}
             }
-          }
-        },
-        plugins:[{
-          id:'barValueLabels',
-          afterDatasetsDraw(chart){
-            const {ctx:c} = chart;
-            chart.data.datasets.forEach((ds,di)=>{
-              chart.getDatasetMeta(di).data.forEach((bar,i)=>{
-                const val = ds.data[i];
-                const pct = totalVal > 0 ? (val/totalVal*100).toFixed(1) : '0';
-                c.save();
-                c.font = 'bold 11px JetBrains Mono, monospace';
-                c.fillStyle = '#a1a1aa';
-                c.textAlign = 'left';
-                c.textBaseline = 'middle';
-                c.fillText(val.toLocaleString() + ' (' + pct + '%)', bar.x + 8, bar.y);
-                c.restore();
-              });
-            });
-          }
-        }]
-      };
-
-    } else if(type === 'pie'){
-      config = {
-        type:'pie',
-        data:{
-          labels:labels,
-          datasets:[{
-            data:values,
-            backgroundColor:FUNNEL_COLORS_ALPHA,
-            borderColor:'rgba(26,26,31,0.8)',
-            borderWidth:2,
-            hoverOffset:14,
-            hoverBorderColor:'#fff',
-            hoverBorderWidth:2
-          }]
-        },
-        options:{
-          responsive:true,
-          maintainAspectRatio:false,
-          animation:{animateRotate:true,animateScale:true,duration:900,easing:'easeOutQuart'},
-          layout:{padding:10},
-          plugins:{
-            legend:{
-              position:'right',
-              labels:{
-                color:'#a1a1aa',
-                font:{size:11,weight:'400'},
-                padding:12,
-                usePointStyle:true,
-                pointStyleWidth:10,
-                generateLabels:function(chart){
-                  const data = chart.data;
-                  return data.labels.map((label,i)=>{
-                    const val = data.datasets[0].data[i];
-                    const pct = totalVal > 0 ? (val/totalVal*100).toFixed(1) : '0';
-                    return {
-                      text: label + '  (' + pct + '%)',
-                      fillStyle: data.datasets[0].backgroundColor[i],
-                      strokeStyle: 'transparent',
-                      pointStyle:'circle',
-                      index:i
-                    };
-                  });
-                }
-              }
-            },
-            tooltip:commonTooltip
-          }
-        }
-      };
-
-    } else if(type === 'doughnut'){
-      config = {
-        type:'doughnut',
-        data:{
-          labels:labels,
-          datasets:[{
-            data:values,
-            backgroundColor:FUNNEL_COLORS_ALPHA,
-            borderColor:'rgba(26,26,31,0.8)',
-            borderWidth:2,
-            hoverOffset:12,
-            hoverBorderColor:'#fff',
-            hoverBorderWidth:2,
-            cutout:'58%',
-            spacing:2
-          }]
-        },
-        options:{
-          responsive:true,
-          maintainAspectRatio:false,
-          animation:{animateRotate:true,animateScale:true,duration:900,easing:'easeOutQuart'},
-          layout:{padding:10},
-          plugins:{
-            legend:{
-              position:'right',
-              labels:{
-                color:'#a1a1aa',
-                font:{size:11,weight:'400'},
-                padding:12,
-                usePointStyle:true,
-                pointStyleWidth:10,
-                generateLabels:function(chart){
-                  const data = chart.data;
-                  return data.labels.map((label,i)=>{
-                    const val = data.datasets[0].data[i];
-                    const pct = totalVal > 0 ? (val/totalVal*100).toFixed(1) : '0';
-                    return {
-                      text: label + '  (' + pct + '%)',
-                      fillStyle: data.datasets[0].backgroundColor[i],
-                      strokeStyle: 'transparent',
-                      pointStyle:'circle',
-                      index:i
-                    };
-                  });
-                }
-              }
-            },
-            tooltip:commonTooltip
-          }
-        },
-        plugins:[{
-          id:'doughnutCenterText',
-          afterDraw(chart){
-            const {chartArea} = chart;
-            if(!chartArea) return;
-            const cx = (chartArea.left + chartArea.right) / 2;
-            const cy = (chartArea.top + chartArea.bottom) / 2;
-            const c = chart.ctx;
-            c.save();
-            c.font = 'bold 26px JetBrains Mono, monospace';
-            c.fillStyle = '#e8e8ed';
-            c.textAlign = 'center';
-            c.textBaseline = 'middle';
-            c.fillText(totalVal.toLocaleString(), cx, cy - 8);
-            c.font = '500 11px -apple-system, BlinkMacSystemFont, sans-serif';
-            c.fillStyle = '#6b6b78';
-            c.fillText('Total Leads', cx, cy + 16);
-            c.restore();
-          }
-        }]
-      };
-
-    } else if(type === 'line'){
-      config = {
-        type:'line',
-        data:{
-          labels:shortLabels,
-          datasets:[{
-            label:'Funnel Flow',
-            data:values,
-            borderColor:'#a855f7',
-            backgroundColor:function(context){
-              const chart = context.chart;
-              const {ctx:c,chartArea} = chart;
-              if(!chartArea) return 'rgba(168,85,247,0.08)';
-              const gradient = c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
-              gradient.addColorStop(0,'rgba(168,85,247,0.18)');
-              gradient.addColorStop(1,'rgba(168,85,247,0.01)');
-              return gradient;
-            },
-            fill:true,
-            tension:0.35,
-            pointRadius:6,
-            pointHoverRadius:9,
-            pointBackgroundColor:FUNNEL_COLORS,
-            pointBorderColor:'#1a1a1f',
-            pointBorderWidth:2,
-            borderWidth:3
-          }]
-        },
-        options:{
-          responsive:true,
-          maintainAspectRatio:false,
-          animation:{duration:1000,easing:'easeOutQuart'},
-          interaction:{mode:'index',intersect:false},
-          plugins:{
-            legend:{display:false},
-            tooltip:commonTooltip
           },
-          scales:{
-            x:{
-              ticks:{color:'#a1a1aa',font:{size:11},padding:6},
-              grid:{color:'rgba(255,255,255,0.04)',drawBorder:false}
-            },
-            y:{
-              type:'logarithmic',
-              ticks:{color:'#6b6b78',font:{size:10}},
-              grid:{color:'rgba(255,255,255,0.04)',drawBorder:false},
-              title:{display:true,text:'Leads (log scale)',color:'#6b6b78',font:{size:10,weight:'400'}}
+          plugins:[{id:'barVal',afterDatasetsDraw(ch){const c=ch.ctx;ch.getDatasetMeta(0).data.forEach((bar,i)=>{const v=values[i];const p=totalVal>0?(v/totalVal*100).toFixed(1):'0';c.save();c.font='bold 11px -apple-system,sans-serif';c.fillStyle=_css('--text-muted');c.textAlign='left';c.textBaseline='middle';c.fillText(v.toLocaleString()+' ('+p+'%)',bar.x+8,bar.y);c.restore();});}}]
+        };
+      } else {
+        config = {
+          type:'line',
+          data:{labels,datasets:[{label:'Pipeline Flow',data:values,borderColor:'#10b981',
+            backgroundColor:function(ctx){const ch=ctx.chart;const{ctx:c,chartArea}=ch;if(!chartArea)return 'rgba(16,185,129,0.08)';const g=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);g.addColorStop(0,'rgba(16,185,129,0.22)');g.addColorStop(1,'rgba(16,185,129,0.01)');return g;},
+            fill:true,tension:0.38,pointRadius:7,pointHoverRadius:10,pointBackgroundColor:FUNNEL_COLORS,pointBorderColor:_css('--surface'),pointBorderWidth:2.5,borderWidth:3}]},
+          options:{
+            responsive:true,maintainAspectRatio:false,
+            animation:{duration:1000,easing:'easeOutQuart'},interaction:{mode:'index',intersect:false},
+            plugins:{legend:{display:false},tooltip:_funnelTooltip(totalVal)},
+            scales:{
+              x:{ticks:{color:_css('--text-muted'),font:{size:11},padding:6},grid:{color:_css('--chart-grid'),drawBorder:false}},
+              y:{type:'logarithmic',ticks:{color:_css('--text-dim'),font:{size:10}},grid:{color:_css('--chart-grid'),drawBorder:false},title:{display:true,text:'Count (log)',color:_css('--text-dim'),font:{size:10}}}
             }
-          }
-        },
-        plugins:[{
-          id:'linePointLabels',
-          afterDatasetsDraw(chart){
-            const meta = chart.getDatasetMeta(0);
-            const c = chart.ctx;
-            meta.data.forEach((point,i)=>{
-              const val = chart.data.datasets[0].data[i];
-              c.save();
-              c.font = 'bold 10px JetBrains Mono, monospace';
-              c.fillStyle = FUNNEL_COLORS[i];
-              c.textAlign = 'center';
-              c.textBaseline = 'bottom';
-              c.fillText(val.toLocaleString(), point.x, point.y - 10);
-              c.restore();
-            });
-          }
-        }]
-      };
+          },
+          plugins:[{id:'linePtLbl',afterDatasetsDraw(ch){const c=ch.ctx;ch.getDatasetMeta(0).data.forEach((pt,i)=>{c.save();c.font='bold 10px -apple-system,sans-serif';c.fillStyle=FUNNEL_COLORS[i];c.textAlign='center';c.textBaseline='bottom';c.fillText(values[i].toLocaleString(),pt.x,pt.y-12);c.restore();});}}]
+        };
+      }
+
+      detail.innerHTML = '<div class="funnel-summary-stats">'+[
+        {l:'Total Leads',v:st.total.toLocaleString(),s:'In pipeline'},
+        {l:'Conversion',v:st.convRate+'%',s:st.closed+' closed deals'},
+        {l:'Reply Rate',v:st.replyRate+'%',s:st.replied+' replies'},
+        {l:'Revenue',v:'$'+st.revenue.toLocaleString(),s:'Monthly MRR'},
+      ].map(s=>`<div class="funnel-summary-stat"><div class="fss-label">${s.l}</div><div class="fss-value">${s.v}</div><div class="fss-sub">${s.s}</div></div>`).join('')+'</div>';
+
+    /* ════════════════════════════════════════════════
+       FORMS — Pie (3D) or Bar
+    ════════════════════════════════════════════════ */
+    } else if(cat === 'forms'){
+      const fd = d.form;
+      const totalVal = fd.total || 1;
+
+      if(sub === 'pie'){
+        const pie3D = {id:'pie3d',beforeDraw(chart){
+          const ds=chart.getDatasetMeta(0);if(!ds||!ds.data.length)return;const c=chart.ctx;
+          for(let l=14;l>0;l--){c.save();c.globalAlpha=0.02+(l/14)*0.04;
+            ds.data.forEach((arc,i)=>{c.beginPath();c.arc(arc.x,arc.y+l*1.4,arc.outerRadius,arc.startAngle,arc.endAngle);c.arc(arc.x,arc.y+l*1.4,arc.innerRadius||0,arc.endAngle,arc.startAngle,true);c.closePath();c.fillStyle=FORM_COLORS[i]||'#666';c.fill();});
+          c.restore();}
+        }};
+        config = {
+          type:'pie',
+          data:{labels:fd.labels,datasets:[{data:fd.values,backgroundColor:FORM_COLORS_A,borderColor:_css('--surface'),borderWidth:3,hoverOffset:18,hoverBorderColor:'#fff',hoverBorderWidth:2,offset:[4,4,4,0]}]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,animateScale:true,duration:950,easing:'easeOutQuart'},layout:{padding:10},plugins:{legend:{display:false},tooltip:_funnelTooltip(totalVal)}},
+          plugins:[pie3D]
+        };
+      } else {
+        config = {
+          type:'bar',
+          data:{labels:fd.labels,datasets:[{label:'Forms',data:fd.values,backgroundColor:FORM_COLORS_A,borderColor:FORM_COLORS,borderWidth:0,borderRadius:6,borderSkipped:false,barPercentage:0.65,categoryPercentage:0.8}]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{duration:850,easing:'easeOutQuart'},
+            plugins:{legend:{display:false},tooltip:_funnelTooltip(totalVal)},
+            scales:{x:{ticks:{color:_css('--text-muted'),font:{size:11}},grid:{display:false}},y:{ticks:{color:_css('--text-dim'),font:{size:10}},grid:{color:_css('--chart-grid'),drawBorder:false}}
+          }},
+          plugins:[{id:'formBarVal',afterDatasetsDraw(ch){const c=ch.ctx;ch.getDatasetMeta(0).data.forEach((bar,i)=>{const v=fd.values[i];c.save();c.font='bold 12px -apple-system,sans-serif';c.fillStyle=FORM_COLORS[i];c.textAlign='center';c.textBaseline='bottom';c.fillText(v.toLocaleString(),bar.x,bar.y-6);c.restore();});}}]
+        };
+      }
+
+      const formIcons=[{icon:'check-circle',bg:'var(--purple-bg)',color:'var(--purple)'},{icon:'x-circle',bg:'var(--orange-bg)',color:'var(--orange)'},{icon:'search-x',bg:'var(--red-bg)',color:'var(--red)'},{icon:'clock',bg:'var(--surface3)',color:'var(--text-dim)'}];
+      const successRate = totalVal>0?((fd.values[0]||0)/totalVal*100).toFixed(1):'0';
+      detail.innerHTML = '<div class="funnel-summary-stats" style="margin-bottom:14px">'+[
+        {l:'Total Forms',v:fd.total.toLocaleString(),s:'Attempted'},
+        {l:'Success Rate',v:successRate+'%',s:(fd.values[0]||0)+' submitted'},
+        {l:'Failed',v:(fd.values[1]||0).toLocaleString(),s:'Errors'},
+        {l:'Pending',v:(fd.values[3]||0).toLocaleString(),s:'Awaiting'},
+      ].map(s=>`<div class="funnel-summary-stat"><div class="fss-label">${s.l}</div><div class="fss-value">${s.v}</div><div class="fss-sub">${s.s}</div></div>`).join('')+'</div>'
+      +'<div class="funnel-detail-grid">'+fd.labels.map((label,i)=>{
+        const v=fd.values[i];const p=totalVal>0?(v/totalVal*100).toFixed(1):'0';const ic=formIcons[i];
+        return `<div class="funnel-detail-item"><div class="funnel-detail-icon" style="background:${ic.bg};color:${ic.color}"><i data-lucide="${ic.icon}"></i></div><div class="funnel-detail-info"><div class="funnel-detail-label">${label}</div><div class="funnel-detail-value">${v.toLocaleString()} <span class="funnel-detail-pct">${p}%</span></div></div><div class="funnel-detail-dot" style="background:${FORM_COLORS[i]}"></div></div>`;
+      }).join('')+'</div>';
+
+    /* ════════════════════════════════════════════════
+       EMAILS — Doughnut or Line
+    ════════════════════════════════════════════════ */
+    } else if(cat === 'emails'){
+      const ed = d.email;
+      const totalVal = ed.total || 1;
+
+      if(sub === 'doughnut'){
+        config = {
+          type:'doughnut',
+          data:{labels:ed.labels,datasets:[{data:ed.values,backgroundColor:EMAIL_COLORS_A,borderColor:_css('--surface'),borderWidth:2.5,hoverOffset:14,hoverBorderColor:'#fff',hoverBorderWidth:2,cutout:'60%',spacing:3}]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{animateRotate:true,animateScale:true,duration:950,easing:'easeOutQuart'},layout:{padding:10},plugins:{legend:{display:false},tooltip:_funnelTooltip(totalVal)}},
+          plugins:[{id:'emailCenter',afterDraw(chart){
+            const {chartArea}=chart;if(!chartArea)return;
+            const cx=(chartArea.left+chartArea.right)/2,cy=(chartArea.top+chartArea.bottom)/2,c=chart.ctx;
+            c.save();c.font='bold 28px -apple-system,BlinkMacSystemFont,sans-serif';c.fillStyle=_css('--text');c.textAlign='center';c.textBaseline='middle';c.fillText(totalVal.toLocaleString(),cx,cy-9);
+            c.font='500 11px -apple-system,BlinkMacSystemFont,sans-serif';c.fillStyle=_css('--text-dim');c.fillText('Emails Sent',cx,cy+16);c.restore();
+          }}]
+        };
+      } else {
+        config = {
+          type:'line',
+          data:{labels:ed.labels,datasets:[{label:'Email Flow',data:ed.values,borderColor:'#3b82f6',
+            backgroundColor:function(ctx){const ch=ctx.chart;const{ctx:c,chartArea}=ch;if(!chartArea)return 'rgba(59,130,246,0.08)';const g=c.createLinearGradient(0,chartArea.top,0,chartArea.bottom);g.addColorStop(0,'rgba(59,130,246,0.22)');g.addColorStop(1,'rgba(59,130,246,0.01)');return g;},
+            fill:true,tension:0.38,pointRadius:7,pointHoverRadius:10,pointBackgroundColor:EMAIL_COLORS,pointBorderColor:_css('--surface'),pointBorderWidth:2.5,borderWidth:3}]},
+          options:{responsive:true,maintainAspectRatio:false,animation:{duration:1000,easing:'easeOutQuart'},interaction:{mode:'index',intersect:false},
+            plugins:{legend:{display:false},tooltip:_funnelTooltip(totalVal)},
+            scales:{x:{ticks:{color:_css('--text-muted'),font:{size:10},maxRotation:25},grid:{color:_css('--chart-grid'),drawBorder:false}},y:{ticks:{color:_css('--text-dim'),font:{size:10}},grid:{color:_css('--chart-grid'),drawBorder:false}}}
+          },
+          plugins:[{id:'emailLineLbl',afterDatasetsDraw(ch){const c=ch.ctx;ch.getDatasetMeta(0).data.forEach((pt,i)=>{c.save();c.font='bold 10px -apple-system,sans-serif';c.fillStyle=EMAIL_COLORS[i];c.textAlign='center';c.textBaseline='bottom';c.fillText(ed.values[i].toLocaleString(),pt.x,pt.y-12);c.restore();});}}]
+        };
+      }
+
+      const emailIcons=[{icon:'send',bg:'var(--blue-bg)',color:'var(--blue)'},{icon:'eye',bg:'var(--cyan-bg)',color:'var(--cyan)'},{icon:'message-circle',bg:'var(--green-bg)',color:'var(--green)'},{icon:'star',bg:'var(--yellow-bg)',color:'var(--yellow)'},{icon:'trophy',bg:'var(--purple-bg)',color:'var(--purple)'},{icon:'alert-triangle',bg:'var(--red-bg)',color:'var(--red)'}];
+      detail.innerHTML = '<div class="funnel-summary-stats" style="margin-bottom:14px">'+[
+        {l:'Total Sent',v:st.emailed.toLocaleString(),s:'Emails delivered'},
+        {l:'Open Rate',v:st.openRate+'%',s:st.opened+' opened'},
+        {l:'Reply Rate',v:st.replyRate+'%',s:st.replied+' replies'},
+        {l:'Closed',v:st.closed.toLocaleString(),s:'Won deals'},
+      ].map(s=>`<div class="funnel-summary-stat"><div class="fss-label">${s.l}</div><div class="fss-value">${s.v}</div><div class="fss-sub">${s.s}</div></div>`).join('')+'</div>'
+      +'<div class="funnel-detail-grid">'+ed.labels.map((label,i)=>{
+        const v=ed.values[i];const p=totalVal>0?(v/totalVal*100).toFixed(1):'0';const ic=emailIcons[i];
+        return `<div class="funnel-detail-item"><div class="funnel-detail-icon" style="background:${ic.bg};color:${ic.color}"><i data-lucide="${ic.icon}"></i></div><div class="funnel-detail-info"><div class="funnel-detail-label">${label}</div><div class="funnel-detail-value">${v.toLocaleString()} <span class="funnel-detail-pct">${p}%</span></div></div><div class="funnel-detail-dot" style="background:${EMAIL_COLORS[i]}"></div></div>`;
+      }).join('')+'</div>';
     }
 
     charts.funnel = new Chart(canvas, config);
     area.classList.remove('switching');
+    if(window.lucide) lucide.createIcons();
   }, 180);
 }
 
 function downloadFunnelChart(){
   if(!charts.funnel) return;
   const link = document.createElement('a');
-  link.download = 'funnel_' + currentFunnelType + '_' + new Date().toISOString().slice(0,10) + '.png';
-  link.href = charts.funnel.toBase64Image('image/png', 1);
+  link.download = 'funnel_'+currentFunnelCat+'_'+currentFunnelSub[currentFunnelCat]+'_'+new Date().toISOString().slice(0,10)+'.png';
+  link.href = charts.funnel.toBase64Image('image/png',1);
   link.click();
 }
 
@@ -3368,7 +3437,12 @@ function addLog(msg){
 // ═══════════════════════════════════════════════════════════════
 // SETTINGS
 // ═══════════════════════════════════════════════════════════════
+
 async function saveSettings(){
+  // Read keywords from input, build with {country} for the backend
+  const kwRaw = document.getElementById('settingKeywords').value;
+  const keywords = kwRaw.split(',').map(k => k.trim()).filter(Boolean);
+  const keywordsForServer = keywords.map(kw => kw + ' {country}');
   const settings = {
     leadTarget: document.getElementById('settingLeadTarget').value,
     countries: document.getElementById('settingCountries').value,
@@ -3379,11 +3453,12 @@ async function saveSettings(){
     minClose: document.getElementById('settingMinClose').value,
     minReply: document.getElementById('settingMinReply').value,
     minOpen: document.getElementById('settingMinOpen').value,
+    keywords: keywordsForServer,
   };
   if(serverConnected){
     const result = await api('/api/settings','POST',settings);
     if(result && !result.error){
-      addLog('✓ Settings saved to server');
+      addLog('Settings saved (' + keywords.length + ' keywords, ' + settings.countries.split(',').filter(c=>c.trim()).length + ' countries)');
       alert('Settings saved to server!');
     } else {
       alert('Error saving: '+(result?result.error:'No response'));
@@ -3725,12 +3800,51 @@ async function sendChat(){
     }
   } else {
     await new Promise(r=>setTimeout(r, 800+Math.random()*1200));
-    reply = getDemoChatReply(msg);
+    reply = await getDemoChatReply(msg);
   }
 
   removeTypingIndicator();
   appendAgentMsg(reply);
   chatSending = false;
+
+  // Notify user if chat panel is not visible or page is not focused
+  if(!document.hasFocus() || !chatOpen){
+    _notifyUser('WholesaleHunter Agent', reply.replace(/<[^>]*>/g,'').substring(0,120));
+    // Show unread badge on FAB
+    if(!chatOpen){
+      const fab = document.getElementById('chatFab');
+      fab.classList.add('has-unread');
+      if(!fab.querySelector('.unread')){
+        const badge = document.createElement('span');
+        badge.className = 'unread';
+        badge.textContent = '1';
+        fab.appendChild(badge);
+      }
+    }
+  }
+}
+
+function _notifyUser(title, body){
+  // Browser notification
+  if('Notification' in window){
+    if(Notification.permission === 'granted'){
+      new Notification(title, {body, icon:'/favicon.ico', tag:'wh-chat'});
+    } else if(Notification.permission !== 'denied'){
+      Notification.requestPermission().then(p=>{
+        if(p === 'granted') new Notification(title, {body, icon:'/favicon.ico', tag:'wh-chat'});
+      });
+    }
+  }
+  // Also play a subtle sound via Web Audio
+  try{
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 800; osc.type = 'sine';
+    gain.gain.value = 0.08;
+    osc.start(); osc.stop(ctx.currentTime + 0.15);
+  } catch(e){}
 }
 
 // ── Handle local actions (commands that trigger API calls) ──
@@ -3890,7 +4004,7 @@ function scrollChat(){
 }
 
 // ── Demo Mode Replies (enriched with data cards) ──
-function getDemoChatReply(msg){
+async function getDemoChatReply(msg){
   const lower = msg.toLowerCase();
   const leads = document.getElementById('statTotalLeads')?.textContent || '0';
   const emails = document.getElementById('statEmailsSent')?.textContent || '0';
@@ -4037,6 +4151,91 @@ Check the Intelligence tab for real-time segment data. In live mode, I'll tell y
 </div>
 
 This will begin the continuous pipeline: **Scrape → Qualify → Email → Forms → Follow-up → Report** every hour.`;
+  }
+
+  if(lower.includes('form') && (lower.includes('total') || lower.includes('status') || lower.includes('submission') || lower.includes('how many') || lower.includes('count'))){
+    // Fetch real form data
+    const fc = serverConnected ? await api('/api/form-outreach/counts') : null;
+    const fs = fc ? fc.success||0 : parseInt(forms.replace(/,/g,''))||0;
+    const ff = fc ? (fc.failed||0)+(fc.no_form||0) : 0;
+    const fp = fc ? fc.processing||0 : 0;
+    const fpend = fc ? fc.pending||0 : 0;
+    const fnf = fc ? fc.no_form||0 : 0;
+    const ft = fs + ff;
+    return `<strong>Form Submission Summary</strong>
+
+<table class="chat-table">
+<thead><tr><th>Metric</th><th>Count</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Submitted Successfully</td><td><strong>${fs}</strong></td><td><span style="color:var(--green)">Completed</span></td></tr>
+<tr><td>Failed</td><td><strong>${ff-fnf}</strong></td><td><span style="color:var(--red)">Error</span></td></tr>
+<tr><td>No Form Found</td><td><strong>${fnf}</strong></td><td><span style="color:var(--orange)">Skipped</span></td></tr>
+<tr><td>Processing</td><td><strong>${fp}</strong></td><td><span style="color:var(--blue)">In Progress</span></td></tr>
+<tr><td>Pending</td><td><strong>${fpend}</strong></td><td><span style="color:var(--text-dim)">Waiting</span></td></tr>
+<tr><td><strong>Total Completed</strong></td><td><strong>${ft}</strong></td><td><span style="color:var(--text)">Success + Failed</span></td></tr>
+</tbody>
+</table>
+
+${fp > 0 ? `<strong>${fp} forms stuck in processing</strong> — use the Restart button on the Forms page to retry them.` : 'All forms have been processed.'}
+
+<div class="chat-actions">
+<div class="chat-action-btn primary" onclick="showPage('forms')">View Forms Page</div>
+<div class="chat-action-btn" onclick="showPage('funnel')">View Funnel</div>
+</div>`;
+  }
+
+  if(lower.includes('email') && (lower.includes('total') || lower.includes('status') || lower.includes('how many') || lower.includes('count') || lower.includes('marketing') || lower.includes('sent'))){
+    const el = parseInt(emails.replace(/,/g,''))||0;
+    const rl = parseInt(replies.replace(/,/g,''))||0;
+    const cl = parseInt(closed.replace(/,/g,''))||0;
+    const rr = el>0 ? (rl/el*100).toFixed(1) : '0';
+    return `<strong>Email Marketing Summary</strong>
+
+<table class="chat-table">
+<thead><tr><th>Metric</th><th>Count</th><th>Rate</th></tr></thead>
+<tbody>
+<tr><td>Emails Sent</td><td><strong>${el.toLocaleString()}</strong></td><td>—</td></tr>
+<tr><td>Opened</td><td><strong>—</strong></td><td>Check tracking</td></tr>
+<tr><td>Replied</td><td><strong>${rl}</strong></td><td><span style="color:${parseFloat(rr)>3?'var(--green)':'var(--red)'}">${rr}%</span></td></tr>
+<tr><td>Interested</td><td><strong>—</strong></td><td>—</td></tr>
+<tr><td>Closed Deals</td><td><strong>${cl}</strong></td><td><span style="color:var(--green)">${el>0?(cl/el*100).toFixed(1):'0'}%</span></td></tr>
+</tbody>
+</table>
+
+**Email Setup:** 8 sending domains, 16 mailboxes, ~1,040 emails/day capacity. 4-stage follow-up sequence over 14 days.
+
+<div class="chat-actions">
+<div class="chat-action-btn primary" onclick="showPage('email')">View Email Dashboard</div>
+<div class="chat-action-btn" onclick="useSuggestion('Why are my reply rates low?')">Reply Rate Help</div>
+</div>`;
+  }
+
+  if(lower.includes('total') || lower.includes('overview') || lower.includes('all data') || lower.includes('everything') || lower.includes('summary')){
+    const el = parseInt(emails.replace(/,/g,''))||0;
+    const fl = parseInt(forms.replace(/,/g,''))||0;
+    const rl = parseInt(replies.replace(/,/g,''))||0;
+    const cl = parseInt(closed.replace(/,/g,''))||0;
+    const tl = parseInt(leads.replace(/,/g,''))||0;
+    return `<strong>Complete Project Overview</strong>
+
+<table class="chat-table">
+<thead><tr><th>Category</th><th>Count</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Total Leads</td><td><strong>${tl.toLocaleString()}</strong></td><td><span style="color:var(--green)">In Database</span></td></tr>
+<tr><td>Emails Sent</td><td><strong>${el.toLocaleString()}</strong></td><td><span style="color:var(--blue)">Delivered</span></td></tr>
+<tr><td>Forms Submitted</td><td><strong>${fl}</strong></td><td><span style="color:var(--purple)">Completed</span></td></tr>
+<tr><td>Replies</td><td><strong>${rl}</strong></td><td><span style="color:var(--cyan)">Received</span></td></tr>
+<tr><td>Closed Deals</td><td><strong>${cl}</strong></td><td><span style="color:var(--green)">Won</span></td></tr>
+<tr><td>Reply Rate</td><td><strong>${el>0?(rl/el*100).toFixed(1):'0'}%</strong></td><td>${parseFloat(el>0?(rl/el*100).toFixed(1):'0')>3?'<span style="color:var(--green)">Good</span>':'<span style="color:var(--red)">Needs work</span>'}</td></tr>
+</tbody>
+</table>
+
+<div class="chat-actions">
+<div class="chat-action-btn primary" onclick="showPage('dashboard')">Dashboard</div>
+<div class="chat-action-btn" onclick="showPage('funnel')">Funnel</div>
+<div class="chat-action-btn" onclick="showPage('forms')">Forms</div>
+<div class="chat-action-btn" onclick="showPage('email')">Email</div>
+</div>`;
   }
 
   if(lower.includes('error') || lower === '/errors'){

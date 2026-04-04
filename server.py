@@ -414,6 +414,17 @@ def handle_chat(user_message: str) -> str:
     # Get additional computed metrics for deeper analysis
     extra_context = _get_deep_analytics()
 
+    # Get form outreach data
+    form_context = ""
+    try:
+        from modules.database import get_form_outreach_counts
+        fc = get_form_outreach_counts()
+        form_context = (f"FORM SUBMISSIONS: {fc.get('success',0)} success, {fc.get('failed',0)} failed, "
+                       f"{fc.get('no_form',0)} no form found, {fc.get('processing',0)} processing, "
+                       f"{fc.get('pending',0)} pending, {fc.get('success',0)+fc.get('failed',0)+fc.get('no_form',0)} total completed")
+    except:
+        form_context = "FORM SUBMISSIONS: data unavailable"
+
     context = f"""You are the WholesaleHunter v2 AI command center for Rozper, a wholesale VoIP carrier.
 You are a senior sales operations analyst with FULL access to the database, pipeline, and system state.
 
@@ -432,6 +443,8 @@ AGENT STATE:
 DATABASE OVERVIEW:
 {db_context}
 
+{form_context}
+
 DEEP ANALYTICS:
 {extra_context}
 
@@ -445,13 +458,17 @@ RESPONSE FORMATTING RULES:
 - Use **bold** for key metrics and action items
 - Use bullet points (•) for lists of data
 - Structure longer answers with clear sections
+- When the user asks for totals, counts, or summaries — ALWAYS present data in a structured table format
 - When diagnosing problems, always provide: 1) Current metric 2) What's wrong 3) Why 4) Fix
 - When asked "why" something is low/bad, give a specific root cause analysis with data
 - For action recommendations, be specific: "Pause India (0 closes from 234 leads)" not "consider pausing underperformers"
 - If the user asks about leads, reply rates, or performance — pull actual numbers and compare segments
-- Keep responses focused and data-driven (3-5 paragraphs max)
+- When asked about form submissions, include: success count, failed count, no form found, processing, total
+- When asked about email marketing, include: sent, opened, open rate, replied, reply rate, interested, closed
+- Keep responses focused and data-driven — be complete from A to Z
 - If data is missing or zero, say so honestly and explain what that means
-- When recommending actions, explain the expected impact"""
+- When recommending actions, explain the expected impact
+- Always answer project-related questions fully — leads, forms, emails, pipeline, scoring, everything"""
 
     messages = []
     for entry in agent_state["chat_history"][-8:]:
@@ -488,8 +505,7 @@ def _get_deep_analytics() -> str:
     """Compute deeper analytics for AI context — reply rates, conversion, diagnostics."""
     lines = []
     try:
-        from config import get_db
-        db = get_db()
+        from modules.database import db
         if not db:
             return "Deep analytics unavailable — no DB connection"
 
@@ -600,10 +616,9 @@ def _fallback_chat(msg: str) -> str:
     stats = agent_state["stats"]
 
     # Try to get real DB numbers even without AI
-    db_nums = {"total": 0, "emailed": 0, "replied": 0, "closed": 0, "reply_rate": "0"}
+    db_nums = {"total": 0, "emailed": 0, "replied": 0, "closed": 0, "reply_rate": "0", "forms": 0, "form_success": 0, "form_failed": 0}
     try:
-        from config import get_db
-        db = get_db()
+        from modules.database import db, get_form_outreach_counts
         if db:
             all_l = db.select("leads", columns="email_sent,replied,closed", limit=10000)
             if all_l:
@@ -613,6 +628,14 @@ def _fallback_chat(msg: str) -> str:
                 db_nums["closed"] = sum(1 for l in all_l if l.get("closed"))
                 if db_nums["emailed"] > 0:
                     db_nums["reply_rate"] = str(round(db_nums["replied"] / db_nums["emailed"] * 100, 1))
+            # Form data
+            try:
+                fc = get_form_outreach_counts()
+                db_nums["form_success"] = fc.get("success", 0)
+                db_nums["form_failed"] = (fc.get("failed", 0) or 0) + (fc.get("no_form", 0) or 0)
+                db_nums["forms"] = db_nums["form_success"] + db_nums["form_failed"]
+            except:
+                pass
     except:
         pass
 
@@ -620,15 +643,15 @@ def _fallback_chat(msg: str) -> str:
         status = f"running (cycle {agent_state['cycle']})" if agent_state["agent_loop_running"] else "idle"
         return (f"**Agent Status: {status.upper()}**\n\n"
                 f"**Database Totals:**\n"
-                f"• Total leads: {db_nums['total']:,}\n"
-                f"• Emails sent: {db_nums['emailed']:,}\n"
-                f"• Replies: {db_nums['replied']:,} ({db_nums['reply_rate']}% reply rate)\n"
-                f"• Closed: {db_nums['closed']:,}\n\n"
+                f"• Total leads: **{db_nums['total']:,}**\n"
+                f"• Emails sent: **{db_nums['emailed']:,}**\n"
+                f"• Forms submitted: **{db_nums['forms']:,}** ({db_nums['form_success']} success, {db_nums['form_failed']} failed)\n"
+                f"• Replies: **{db_nums['replied']:,}** ({db_nums['reply_rate']}% reply rate)\n"
+                f"• Closed deals: **{db_nums['closed']:,}**\n\n"
                 f"**Session Stats:**\n"
                 f"• Scraped: {stats['leads_scraped']} | Qualified: {stats['leads_qualified']}\n"
                 f"• Emails: {stats['emails_sent']} | Forms: {stats['forms_filled']}\n"
-                f"• Follow-ups: {stats['followups_sent']}\n\n"
-                f"Add your Anthropic API key to .env for deeper AI-powered analysis.")
+                f"• Follow-ups: {stats['followups_sent']}")
 
     if "reply" in lower and ("low" in lower or "why" in lower or "improve" in lower):
         return (f"**Reply Rate Analysis**\n\n"
@@ -673,6 +696,27 @@ def _fallback_chat(msg: str) -> str:
                 f"• Google Search — directory scraping\n\n"
                 f"Daily target: 1,000 leads. Use /run scrape to run the scraper or /start to begin the full pipeline.")
 
+    if ("total" in lower and "lead" in lower) or ("how many" in lower and "lead" in lower):
+        return (f"**Total Leads: {db_nums['total']:,}**\n\n"
+                f"• Emailed: **{db_nums['emailed']:,}**\n"
+                f"• Forms submitted: **{db_nums['forms']:,}** ({db_nums['form_success']} success, {db_nums['form_failed']} failed)\n"
+                f"• Replied: **{db_nums['replied']:,}** ({db_nums['reply_rate']}% rate)\n"
+                f"• Closed: **{db_nums['closed']:,}**")
+
+    if "form" in lower and ("total" in lower or "how many" in lower or "status" in lower or "submission" in lower or "count" in lower):
+        return (f"**Form Submission Totals**\n\n"
+                f"• Submitted successfully: **{db_nums['form_success']:,}**\n"
+                f"• Failed: **{db_nums['form_failed']:,}**\n"
+                f"• Total completed: **{db_nums['forms']:,}**\n\n"
+                f"Go to the Forms page to see details and use Restart to retry stuck forms.")
+
+    if "email" in lower and ("total" in lower or "how many" in lower or "sent" in lower or "count" in lower):
+        return (f"**Email Marketing Totals**\n\n"
+                f"• Emails sent: **{db_nums['emailed']:,}**\n"
+                f"• Replied: **{db_nums['replied']:,}** ({db_nums['reply_rate']}% reply rate)\n"
+                f"• Closed from email: **{db_nums['closed']:,}**\n\n"
+                f"8 sending domains, 16 mailboxes, ~1,040/day capacity. 4-stage follow-up over 14 days.")
+
     if "error" in lower:
         errors = agent_state["errors"][-5:] if agent_state["errors"] else []
         if errors:
@@ -683,13 +727,14 @@ def _fallback_chat(msg: str) -> str:
     return (f"**WholesaleHunter Command Center**\n\n"
             f"I can help with:\n"
             f"• **Status** — Full pipeline and project report\n"
-            f"• **Leads** — Find, analyze, and score leads\n"
+            f"• **Total leads** — How many leads, emails, forms\n"
+            f"• **Form submissions** — Success, failed, totals\n"
+            f"• **Email marketing** — Sent, replied, rates\n"
             f"• **Reply rates** — Why they're low and how to fix\n"
             f"• **Segments** — Which countries/types perform best\n"
-            f"• **Domains** — Email domain health and rotation\n"
             f"• **Actions** — Start/stop agent, run pipeline steps\n\n"
             f"Type /help to see all slash commands or ask anything in plain English.\n\n"
-            f"DB: {db_nums['total']:,} leads | {db_nums['emailed']:,} emailed | {db_nums['reply_rate']}% reply rate")
+            f"DB: {db_nums['total']:,} leads | {db_nums['emailed']:,} emailed | {db_nums['forms']:,} forms | {db_nums['reply_rate']}% reply rate")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1067,13 +1112,19 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
         elif path == "/api/form-outreach/stop":
             from modules.form_outreach import stop_form_outreach
             result = stop_form_outreach()
-            add_log("⏹ Form outreach stop requested", category="form")
+            add_log("Form outreach stop requested", category="form")
+            self._json_response(result)
+
+        elif path == "/api/form-outreach/restart":
+            from modules.form_outreach import restart_form_outreach_background
+            result = restart_form_outreach_background()
+            add_log("Restart: retrying " + str(result.get("processing_count", 0)) + " stuck forms", category="form")
             self._json_response(result)
 
         elif path == "/api/form-outreach/clean-urls":
             from modules.form_outreach import clean_all_pending_urls
             result = clean_all_pending_urls()
-            add_log(f"🧹 Cleaned {result.get('cleaned', 0)}/{result.get('total', 0)} URLs", category="form")
+            add_log(f"Cleaned {result.get('cleaned', 0)}/{result.get('total', 0)} URLs", category="form")
             self._json_response(result)
 
         elif path == "/api/chat":
@@ -1150,6 +1201,9 @@ class AgentHTTPHandler(SimpleHTTPRequestHandler):
                     config.AUTO_EXCLUSION["lead_type_min_close_rate"] = float(body["minClose"]) / 100
                 if body.get("minReply"):
                     config.AUTO_EXCLUSION["source_min_reply_rate"] = float(body["minReply"]) / 100
+                if body.get("keywords") and isinstance(body["keywords"], list):
+                    config.SEARCH_KEYWORDS = [kw.strip() for kw in body["keywords"] if kw.strip()]
+                    add_log(f"Search keywords updated: {len(config.SEARCH_KEYWORDS)} keywords", category="system")
                 add_log("Settings updated via dashboard", category="system")
                 self._json_response({"status": "saved"})
             except Exception as e:

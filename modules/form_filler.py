@@ -981,41 +981,59 @@ async def process_lead_form(browser: Browser, lead: dict) -> dict:
 async def run_form_filling(leads: list[dict], max_concurrent: int = 3) -> dict:
     """
     Run form filling for a batch of leads.
-    Uses Playwright with controlled concurrency.
-    Returns summary stats.
+    Processes one lead at a time with stop check between each.
+    Each form has a 60s timeout so nothing hangs.
     """
+    from modules.form_outreach import outreach_state
+
     stats = {"total": len(leads), "success": 0, "no_form": 0, "failed": 0, "results": []}
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
 
-        # Process in batches to control concurrency
-        for i in range(0, len(leads), max_concurrent):
-            batch = leads[i:i + max_concurrent]
-            tasks = [process_lead_form(browser, lead) for lead in batch]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+        for i, lead in enumerate(leads):
+            # Check stop flag before each form
+            if outreach_state.get("stop_requested"):
+                logger.info(f"Form filling stopped at {i}/{len(leads)}")
+                break
 
-            for result in results:
-                if isinstance(result, Exception):
-                    stats["failed"] += 1
-                    stats["results"].append({"success": False, "error_message": str(result)[:200]})
-                    logger.error(f"Form fill exception: {result}")
-                elif result.get("success"):
-                    stats["success"] += 1
-                    stats["results"].append(result)
-                elif result.get("reason") == "no_form":
-                    stats["no_form"] += 1
-                    stats["results"].append(result)
-                else:
-                    stats["failed"] += 1
-                    stats["results"].append(result)
+            # Update current lead for dashboard
+            outreach_state["current_lead"] = lead.get("company_name") or lead.get("website_url") or "?"
 
-            # Rate limiting between batches
-            await asyncio.sleep(FORM_FILL_DELAY_SECONDS)
+            try:
+                # Timeout per form — 20 seconds max so stop is fast
+                result = await asyncio.wait_for(
+                    process_lead_form(browser, lead),
+                    timeout=20
+                )
+            except asyncio.TimeoutError:
+                result = {"success": False, "error_message": "Timed out after 20s"}
+                logger.warning(f"Form fill timeout: {lead.get('company_name')}")
+            except Exception as e:
+                result = {"success": False, "error_message": str(e)[:200]}
+                logger.error(f"Form fill exception: {e}")
 
-            if (i + max_concurrent) % 50 == 0:
-                logger.info(f"Form filling progress: {i + max_concurrent}/{len(leads)} "
-                            f"(success: {stats['success']}, no_form: {stats['no_form']})")
+            if isinstance(result, Exception):
+                stats["failed"] += 1
+                stats["results"].append({"success": False, "error_message": str(result)[:200]})
+            elif result.get("success"):
+                stats["success"] += 1
+                stats["results"].append(result)
+            elif result.get("reason") == "no_form":
+                stats["no_form"] += 1
+                stats["results"].append(result)
+            else:
+                stats["failed"] += 1
+                stats["results"].append(result)
+
+            # Update outreach state live for dashboard
+            outreach_state["total_processed"] = stats["success"] + stats["failed"] + stats["no_form"]
+            outreach_state["success"] = stats["success"]
+            outreach_state["failed"] = stats["failed"]
+            outreach_state["no_form"] = stats["no_form"]
+
+            # Brief pause between forms
+            await asyncio.sleep(1)
 
         await browser.close()
 
