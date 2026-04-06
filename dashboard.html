@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/x-icon" href="/images/favicon.ico">
 <title>WholesaleHunter v2 — Command Center</title>
 <script>document.documentElement.setAttribute('data-theme',localStorage.getItem('wh-theme')||'dark');</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -438,6 +439,25 @@
   .chat-fab.has-unread{animation:fabPulse 2.5s infinite;}
   @keyframes fabPulse{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,0.25)}50%{box-shadow:0 2px 8px rgba(0,0,0,0.25),0 0 0 4px rgba(255,255,255,0.04)}}
 
+
+  .ai-robot-icon {
+    width: 64px;
+    height: 64px;
+    color: #2277ff; /* Slate Blue/Grey */
+    display: inline-block;
+    transition: color 0.3s ease;
+  }
+
+  .ai-robot-icon:hover {
+    color: #3b82f6; /* Modern AI Blue */
+    animation: robot-float 2s ease-in-out infinite;
+  }
+
+  @keyframes robot-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
   .chat-panel{position:fixed;top:0;right:0;width:480px;height:100vh;background:var(--bg);border-left:1px solid var(--border);z-index:200;display:flex;flex-direction:column;transform:translateX(100%);transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);box-shadow:none;}
   .chat-panel.open{transform:translateX(0);box-shadow:-12px 0 40px rgba(0,0,0,0.5);}
   .chat-panel.expanded{width:720px;}
@@ -599,7 +619,7 @@
 
 <!-- HEADER -->
 <div class="header">
-  <div class="logo"><i data-lucide="activity"></i></div>
+  <div class="logo"><img src="images/favicon-32x32.png" alt="voip hunter logo"></div>
   <div class="h-title">WholesaleHunter <span>v2.0</span></div>
   <div class="h-right">
     <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle light/dark theme">
@@ -1321,7 +1341,25 @@ hellorozper.com</textarea>
 
 <!-- CHAT FAB -->
 <button class="chat-fab" id="chatFab" onclick="toggleChat()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+  <svg width="100" height="100" viewBox="0 0 24 24" fill="none" xmlns="http://w3.org">
+  <!-- Antenna -->
+  <path d="M12 2V4M10 2H14" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round"/>
+  
+  <!-- Head -->
+  <rect x="6" y="4" width="12" height="8" rx="2" stroke="currentColor" stroke-width="2"/>
+  
+  <!-- Eyes -->
+  <circle cx="9.5" cy="8" r="1" fill="currentColor"/>
+  <circle cx="14.5" cy="8" r="1" fill="currentColor"/>
+  
+  <!-- Neck -->
+  <path d="M10 12V14H14V12" stroke="currentColor" stroke-width="1.5"/>
+  
+  <!-- Torso / Shoulders -->
+  <path d="M4 19C4 16.2386 6.23858 14 9 14H15C17.7614 14 20 16.2386 20 19V21H4V19Z" 
+        stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+</svg>
+
 </button>
 
 <!-- CHAT PANEL -->
